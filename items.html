@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<link rel="stylesheet" href="styles.css">
+<html>
+<body data-page="items">
+    <div id="header">
+        <h2>Items</p>
+    </div>
+    <div id="page-content">
+        <div id="components-list"></div>
+    </div>
+    <button id="add-button">+</button>
+    <dialog id="add-dialog">
+        <h2>Add Item</h2>
+        <form method="dialog" id="add-form">
+            <label for="ainame">Name:</label>
+            <input type="text" id="ainame">
+            <br>
+            <label for="aitype">Type:</label>
+            <select id="aitype">
+                <option disabled selected value></option>
+            </select>
+            <br>
+            <label for="iewishlist">Wishlist:</label>
+            <input type="checkbox" id="aiwishlist">
+            <br>
+            <label for="ieworn">Worn:</label>
+            <input type="checkbox" class="ieworn">
+            <br>
+
+            <div>
+                <button type="submit" formnovalidate>Cancel</button>
+                <button type="submit" id="add-submit">Submit</button>
+            </div>
+        </form>
+    </dialog>
+    <div id="navbar"></div>
+    <script src="utils.js" onload="initItemsPage()"></script>
+</body>
+</html>

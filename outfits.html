@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<link rel="stylesheet" href="styles.css">
+<html>
+<body data-page="outfits">
+    <div id="header">
+        <h2>Outfits</p>
+    </div>
+    <div id="page-content">
+        <div id="components-list"></div>
+    </div>
+    <button id="add-button">+</button>
+    <dialog id="add-dialog">
+        <h2>Add Outfit</h2>
+        <form method="dialog" id="add-form">
+            <label for="aoitems">Items:</label>
+            <select id="aoitems" multiple></select>
+            <br>
+            <label for="aoweather">Weather:</label>
+            <select id="aoweather">
+                <option disabled selected value></option>
+            </select>
+            <br>
+            <label for="aostars">Stars:</label>
+            <select id="aostars">
+                <option disabled selected value></option>
+            </select>
+            <br>
+            <div>
+                <button type="submit" formnovalidate>Cancel</button>
+                <button type="submit" id="add-submit">Submit</button>
+            </div>
+        </form>
+    </dialog>
+    <div id="navbar"></div>
+    <script src="utils.js" onload="initOutfitsPage()"></script>
+</body>
+</html>
+
+
+<!-- <!DOCTYPE html>
+<link rel="stylesheet" href="styles.css">
+<html>
+    <body data-page="outfits">
+    <h2>Outfits</h2>
+    <div id="page-content">
+        <p id="outfits" style="white-space: pre-line;"></p>
+        <label for="oitems">Items:</label>
+        <select id="oitems" name="oitems" multiple></select>
+        <br><br>
+        <label for="oweather">Weather:</label>
+        <select id="oweather" name="oweather"></select>
+        <br><br>
+        <label for="ostars">Stars:</label>
+        <select id="ostars" name="ostars"></select>
+        <br><br>
+        <input type="submit" onclick="addOutfit()" value="Add Outfit">
+
+        <script src="utils.js" onload="initOutfitsPage()"></script>
+    </div>
+    <div id="navbar"></div>
+    </body>
+</html> -->
