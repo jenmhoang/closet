@@ -1,0 +1,9 @@
+{
+  "name": "Closet",
+  "short_name": "Closet",
+  "scope": "/closet/",
+  "start_url": "/closet/",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "display": "standalone"
+}
