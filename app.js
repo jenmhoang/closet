@@ -453,6 +453,7 @@ function initItemsPage() {
 
 function initSettingsPage() {
     initNavbar();
+    getSavedData();
 
     const uploadForm = document.getElementById('uploadForm');
     const fileInput = document.getElementById('jsonFileInput');
@@ -479,6 +480,26 @@ function initSettingsPage() {
             return
         }
     });
+
+    const saveDataButton = document.getElementById('saveDataButton')
+    saveDataButton.addEventListener('click', async () => {
+        const closet_data = {
+            "items": items,
+            "outfits": outfits
+        }
+        const now = new Date();
+
+        let yyyymmddhhmmss = `${now.getFullYear()}${now.getMonth()+1}${now.getDate()}`
+        yyyymmddhhmmss += `${now.getHours()}${now.getMinutes()}${now.getSeconds()}`
+        
+        const closet_data_json = JSON.stringify(closet_data, null, 2);
+        const blob = new Blob([closet_data_json], {type: 'application/json'});
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `closet_data_${yyyymmddhhmmss}.json`;
+        link.click()
+        URL.revokeObjectURL(link.href);
+    })
 
 }
 
