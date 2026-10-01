@@ -65,7 +65,7 @@ function getItemByName(name) {
 }
 
 
-function saveData() {
+function saveData(items=items, outfits=outfits) {
     localStorage.setItem("items", JSON.stringify(items, null, 2))
     localStorage.setItem("outfits", JSON.stringify(outfits, null, 2))
 }
@@ -317,7 +317,7 @@ function updateOutfitComponentInfo(outfit, outfitComponent) {
     const outfitItems = outfit.items.map(item => item.name).join(", ")
     outfitComponent.querySelector(".oitems").textContent = outfitItems;
     let outfitInfo = `${outfit.weather}`
-    outfitInfo += `\n${Array(outfit.stars+1).join(STAR_UNICODE)}`
+    outfitInfo += `\n${Array(parseInt(outfit.stars, 10)+1).join(STAR_UNICODE)}`
     if (outfit.isAvailable()) {
         outfitInfo += "\navailable \u2714"
     } else {
@@ -337,7 +337,7 @@ function addOutfit() {
     const weather = weatherDropdown.value;
 
     const starsDropdown = document.getElementById('aostars');
-    const stars = parseInt(starsDropdown.value, 10);
+    const stars = starsDropdown.value;
 
     const itemsValidity = selectedItems ? "" : "Select at least one item."
     itemsSelect.setCustomValidity(itemsValidity);
@@ -449,6 +449,37 @@ function initItemsPage() {
             form.reset();
         }
     })
+}
+
+function initSettingsPage() {
+    initNavbar();
+
+    const uploadForm = document.getElementById('uploadForm');
+    const fileInput = document.getElementById('jsonFileInput');
+    const status = document.getElementById('status');
+
+    uploadForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const jsonFile = fileInput.files[0];
+        if (!jsonFile || jsonFile.type != "application/json") {
+            fileInput.setCustomValidity("Invalid file.")
+            return
+        }
+        try {
+            const jsonText = await jsonFile.text();
+            const jsonData =  JSON.parse(jsonText);
+            const uploadedItems = jsonData['items']
+            const uploadedOutfits = jsonData['outfits']
+            saveData(items=uploadedItems, outfits=uploadedOutfits)
+            status.textContent = "Uploaded successfully."
+        }
+        catch (error) {
+            fileInput.setCustomValidity("Could not parse uploaded json.")
+            console.error("Error reading JSON:", error)
+            return
+        }
+    });
+
 }
 
 async function initNavbar() {
