@@ -36,38 +36,31 @@ p {
   background-color: var(--primary-light);
 }
 
-#navbar {
-  /* position:fixed;
-  bottom: 0; */
+.navbar {
   width: 100%;
   background-color: #333;
   display: flex;
-  /* align-items: center; */
   height: 50px;
   box-shadow: 0 0 10px -4px rgba(0, 0, 0, 0.8);
 }
 
-#navbar a {
-  /* float: left; */
-  /* display: block; */
+.navbar a {
   align-content: center;
   text-align: center;
   width: 100%;
-  /* height: 100%; */
   color: var(--primary-light);
   text-decoration: none;
 }
 
-#navbar a:hover {
+.navbar a:hover {
   background: var(--primary-light);
   color: black;
 }
 
-#navbar a.active {
+.navbar a.active {
   background-color: var(--primary-dark);
   color: white;
 }
-
 
 #page-content {
   flex: 1;
@@ -81,6 +74,50 @@ p {
   flex-direction: column;
   gap: 20px;
 }
+
+#sort-button {
+  position: fixed;
+  top: 90px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 16px;
+  border: none;
+  background-color: white;
+  color: black;
+  box-shadow: 0 0 10px -4px rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  transition: background-color 2s ease-out;
+}
+
+#sort-button:active {
+  background-color: color-mix(in srgb, var(--primary-mid) 50%, black);
+  transition: background-color 0.1s ease-out; 
+}
+
+.button-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  /* change to 'flex-direction: column;' for a vertical list */
+}
+
+/* Optional: Simple button styling */
+.button-list button {
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+}
+.button-list button:hover {
+  background-color: #e0e0e0;
+}
+
 
 #add-button {
   position: fixed;
@@ -117,15 +154,6 @@ dialog::backdrop {
     /* backdrop-filter: blur(3px); */
 }
 
-input:focus {
-  outline-style: none;
-}
-
-input:not(:focus):invalid {
-  border-color: red;
-}
-
-
 .component {
   scroll-margin-bottom: 20px;
   background-color: var(--primary-light);
@@ -161,13 +189,17 @@ input:not(:focus):invalid {
   transform: rotate(90deg);
 }
 
-.ccontent {
+.component-content {
   padding: 10px 20px;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.cinfo {
+.component-info {
   white-space: pre-line;
+}
+
+item-filter {
+  padding: 10px;
 }

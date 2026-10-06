@@ -1,0 +1,23 @@
+<form method="dialog">
+    <div>
+        <label for="items-select">Items:</label>
+        <select class="items-select" multiple></select>
+        <br>
+        <label for="weather-select">Weather:</label>
+        <select class="weather-select"></select>
+        <br>
+        <label for="stars-select">Stars:</label>
+        <select class="stars-select"></select>
+        <br>
+        <label for="available-checkbox">Available:</label>
+        <input type="checkbox" class="available-checkbox">
+        <br>
+        <label for="wishlist-checkbox" class="hidden">Wishlist:</label>
+        <tristate-checkbox class="wishlist-checkbox hidden">
+        <br>
+    </div>
+    <div>
+        <button type="submit" class="cancel-button" formnovalidate>Cancel</button>
+        <button type="submit" class="submit-button">Submit</button>
+    </div>
+</form>

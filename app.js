@@ -6,18 +6,22 @@ const WEATHER = {
 }
 
 const ITEM_TYPES = {
-    "top": 1,
-    "bottom": 2,
-    "layer": 3,
-    "socks": 4,
-    "accessory": 5,
-    "shoes": 6
+    'top': 1,
+    'sweater': 2,
+    'cardigan': 3,
+    'skirt': 4,
+    'dress': 5,
+    'pants': 6,
+    'socks': 7,
+    'accessory': 8,
+    'outerwear': 9,
+    'shoes': 10
 }
 
 const STAR_UNICODE = '\u2605'
 
-let outfits = []
-let items = []
+var outfits = []
+var items = []
 
 class Item {
     constructor(name, type, wishlist=false, worn=false) {
@@ -65,9 +69,9 @@ function getItemByName(name) {
 }
 
 
-function saveData(items=items, outfits=outfits) {
-    localStorage.setItem("items", JSON.stringify(items, null, 2))
-    localStorage.setItem("outfits", JSON.stringify(outfits, null, 2))
+function saveData(i=items, o=outfits) {
+    localStorage.setItem("items", JSON.stringify(i, null, 2))
+    localStorage.setItem("outfits", JSON.stringify(o, null, 2))
 }
 
 
@@ -81,298 +85,79 @@ function getSavedData() {
 
     for (outfit of parsedOutfits) {
         const outfitItems = outfit.items.map(item => getItemByName(item.name))
-        outfits.push(new Outfit(outfitItems, outfit.weather, outfit.stars))
+        outfits.push(new Outfit(outfitItems, outfit.weather, parseInt(outfit.stars, 10)))
     }
 }
 
 
-function showItems() {
+function showItems(filter={}) {
     const componentsDiv = document.getElementById('components-list')
     componentsDiv.replaceChildren()
-    for (const item of items) {
-        createItemComponent(item)
-    }
-}
 
-
-async function createItemComponent(item) {
-    const response = await fetch('components/item.html');
-    const text = await response.text();
-    const parser = new DOMParser();
-    const itemSourceDoc = parser.parseFromString(text, 'text/html');
-    const itemComponent = itemSourceDoc.querySelector('.component');
-
-    updateItemComponentInfo(item, itemComponent);
-
-    // populate item edit info
-    const nameInput = itemComponent.querySelector('.iename');
-    nameInput.value = item.name;
-    const typeDropdown = itemComponent.querySelector('.ietype');
-    populateDropdown(typeDropdown, Object.keys(ITEM_TYPES), null, defaultValue=item.type);
-    const wishlistCheckbox = itemComponent.querySelector('.iewishlist');
-    wishlistCheckbox.checked = item.wishlist;
-    const wornCheckbox = itemComponent.querySelector('.ieworn')
-    wornCheckbox.checked = item.worn;
-
-    //TODO: can't be worn and a wishlist
-
-    // helper for use by button listeners
-    function scrollToFit() {
-        // scroll into view
-        if (itemComponent.open) {
-            setTimeout(() => {
-                itemComponent.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'end'
-                });
-            }, 50);
+    filteredItems = items;
+    if (Object.keys(filter).length != 0) {
+        if (filter?.['name'] && filter['name'].trim()) { // string
+            filteredItems = filteredItems.filter(item => item.name.includes(filter['name']))
+        }
+        if (filter?.['type'] && filter['type'].length > 0) {
+            filteredItems = filteredItems.filter(item => filter['type'].includes(item.type))
+        }
+        if (Object.keys(filter).includes('wishlist') &&
+                filter['wishlist'] != TriStateCheckbox.state.NEUTRAL) {
+            filteredItems = filteredItems.filter(item => item.wishlist == filter['wishlist'])
+        }
+        if (Object.keys(filter).includes('worn') && 
+                filter['worn'] != TriStateCheckbox.state.NEUTRAL) {
+            filteredItems = filteredItems.filter(item => item.worn == filter['worn'])
+        }
+        if (Object.keys(filter).includes('wishlist') && 
+                filter['wishlist'] != TriStateCheckbox.state.NEUTRAL) {
+            filteredItems = filteredItems.filter(item => item.wishlist == filter['wishlist'])
         }
     }
 
-    // add button listeners
-    const editButton = itemComponent.querySelector(".cedit-button");
-    editButton.addEventListener("click", () => {
-        toggleEditing(itemComponent);
-        scrollToFit()
-    })
-
-    const updateButton = itemComponent.querySelector(".cupdate-button");
-    updateButton.addEventListener("click", () => {
-        item.name = nameInput.value;
-        item.type = typeDropdown.value;
-        item.wishlist = wishlistCheckbox.checked;
-        item.worn = wornCheckbox.checked;
-
-        updateItemComponentInfo(item, itemComponent)
-        toggleEditing(itemComponent, false)
-        scrollToFit()
-        saveData()
-    })
-
-    const deleteButton = itemComponent.querySelector(".cdelete-button");
-    deleteButton.addEventListener("click", () => {
-        items = items.filter(currItem => currItem !== item)
-        saveData()
-        showItems()
-    })
-
-    // add component closed listener
-    itemComponent.addEventListener('toggle', () => {
-        toggleEditing(itemComponent, false)
-        scrollToFit()
-    })
-
-    // add item component to document
-    if (itemComponent) {
-        const targetItemsDiv = document.getElementById('components-list');
-        targetItemsDiv.appendChild(itemComponent);
+    for (const item of filteredItems) {
+        componentsDiv.appendChild(new ItemComponent(item));
     }
 }
 
-function updateItemComponentInfo(item, itemComponent) {
-    itemComponent.querySelector('.iname').textContent = item.name;
-    let itemInfo = `${item.type}`
-    if (item.wishlist) { itemInfo += "\nwishlist" }
-    if (item.worn) { itemInfo += "\nworn"}
-    itemComponent.querySelector(".cinfo").textContent = itemInfo;
-}
 
 
-/**
- * Adds Item object to list of items
- * based off of form info
- */
-function addItem() {
-    const nameInput = document.getElementById("ainame");
-    const name = nameInput.value;
-    const typeDropdown = document.getElementById("aitype");
-    const type = typeDropdown.value;
-    const wishlistCheckbox = document.getElementById("aiwishlist");
-    const wishlist = wishlistCheckbox.checked;
-
-    // add item to list
-    let nameValidity = ""
-    if (!name) {
-        nameValidity = "Invalid field"
-    } else if (items.map(item => item.name).includes(name)) {
-        nameValidity = "Item already exists."
-    }
-    nameInput.setCustomValidity(nameValidity)
-    
-    let typeValidity = type ? "" : "Select a type."
-    typeDropdown.setCustomValidity(typeValidity)
-
-    if (nameValidity || typeValidity) {
-        return
-    } else {
-        items.push(new Item(name, type, wishlist))
-    }
-
-    saveData()
-    showItems()
-}
-
-
-
-
-
-
-function showOutfits() {
+function showOutfits(filter={}) {
     const componentsDiv = document.getElementById('components-list')
     componentsDiv.replaceChildren()
-    for (const outfit of outfits) {
-        createOutfitComponent(outfit)
-    }
-}
-
-
-async function createOutfitComponent(outfit) {
-    const response = await fetch('components/outfit.html');
-    const text = await response.text();
-    const parser = new DOMParser();
-    const outfitSourceDoc = parser.parseFromString(text, 'text/html');
-    const outfitComponent = outfitSourceDoc.querySelector('.component');
-
-    updateOutfitComponentInfo(outfit, outfitComponent);
-
-    // populate item edit info
-    const itemsSelect = outfitComponent.querySelector('.oeitems');
-    populateDropdown(itemsSelect, items.map(item => item.name), null, 
-                     defaultValue=outfit.items.map(item => item.name))
-    const weatherDropdown = outfitComponent.querySelector('.oeweather')
-    populateDropdown(weatherDropdown, Object.keys(WEATHER), null, defaultValue=outfit.weather)
-    const starsDropdown = outfitComponent.querySelector('.oestars');
-    const starsValueList = [...Array(5).keys()].map(n => n + 1)
-    const starSymbolsList = starsValueList.map(num => Array(num+1).join(STAR_UNICODE))
-    populateDropdown(starsDropdown, starSymbolsList, starsValueList, outfit.stars)
-
-    const ieWornCheckbox = outfitComponent.querySelector('.oeworn')
-    ieWornCheckbox.checked = !outfit.isAvailable()
-
-    // helper for use by button listeners
-    function scrollToFit() {
-        // scroll into view
-        if (outfitComponent.open) {
-            setTimeout(() => {
-                outfitComponent.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'end'
-                });
-            }, 50);
+    
+    filteredOutfits = outfits;
+    if (Object.keys(filter).length != 0) {
+        if (filter?.['items'] && filter['items'].length > 0) {
+            filteredOutfits = filteredOutfits.filter(outfit => 
+                filter['items'].some(itemName => outfit.items.map(item => item.name).includes(itemName)))
+            console.log(filteredOutfits)
+        }
+        if (filter?.['weather'] && filter['weather'].length > 0) {
+            filteredOutfits = filteredOutfits.filter(outfit => filter['weather'].includes(outfit.weather))
+        }
+        if (filter?.['stars'] && filter['stars'].length > 0) {
+            filteredOutfits = filteredOutfits.filter(outfit => filter['stars'].includes(outfit.stars))
+        }
+        if (Object.keys(filter).includes('available') && 
+                filter['available'] != TriStateCheckbox.state.NEUTRAL) {
+            filteredOutfits = filteredOutfits.filter(outfit => outfit.isAvailable() == filter['available'])
+        }
+        if (Object.keys(filter).includes('wishlist') && 
+                filter['wishlist'] != TriStateCheckbox.state.NEUTRAL) {
+            filteredOutfits = filteredOutfits.filter(outfit => outfit.isWishlist() == filter['wishlist'])
         }
     }
 
-    // add button listeners
-    const editButton = outfitComponent.querySelector(".cedit-button");
-    editButton.addEventListener("click", () => {
-        toggleEditing(outfitComponent);
-        scrollToFit()
-    })
-
-    const updateButton = outfitComponent.querySelector(".cupdate-button");
-    updateButton.addEventListener("click", () => {
-        const selectedItemNames = Array.from(itemsSelect.selectedOptions).map(option => option.value);
-        const selectedItems = selectedItemNames.map(itemName => getItemByName(itemName));
-        const weather = weatherDropdown.value;
-        const stars = parseInt(starsDropdown.value, 10);
-        outfit.items = selectedItems;
-        outfit.weather = weather;
-        outfit.stars = stars;
-
-        if (!ieWornCheckbox.checked != outfit.isAvailable()) {
-            for (item of outfit.items) {
-                item.worn = ieWornCheckbox.checked;
-            }
-        }
-
-        updateOutfitComponentInfo(outfit, outfitComponent);
-
-        toggleEditing(outfitComponent, false)
-        scrollToFit()
-        saveData()
-    })
-
-    const deleteButton = outfitComponent.querySelector(".cdelete-button");
-    deleteButton.addEventListener("click", () => {
-        outfits = outfits.filter(currOutfit => currOutfit != outfit)
-        saveData()
-        showOutfits()
-    })
-
-    // add component closed listener
-    outfitComponent.addEventListener('toggle', () => {
-        toggleEditing(outfitComponent, false)
-        scrollToFit()
-    })
-
-    // add item component to document
-    if (outfitComponent) {
-        const targetItemsDiv = document.getElementById('components-list');
-        targetItemsDiv.appendChild(outfitComponent);
+    for (const outfit of filteredOutfits) {
+        componentsDiv.appendChild(new OutfitComponent(outfit));
     }
 }
 
-
-function updateOutfitComponentInfo(outfit, outfitComponent) {
-    const outfitItems = outfit.items.map(item => item.name).join(", ")
-    outfitComponent.querySelector(".oitems").textContent = outfitItems;
-    let outfitInfo = `${outfit.weather}`
-    outfitInfo += `\n${Array(parseInt(outfit.stars, 10)+1).join(STAR_UNICODE)}`
-    if (outfit.isAvailable()) {
-        outfitInfo += "\navailable \u2714"
-    } else {
-        outfitInfo += "\nworn"
-    }
-    if (outfit.isWishlist()) { outfitInfo += "\nwishlist"}
-    outfitComponent.querySelector(".cinfo").textContent = outfitInfo;
-}
-
-
-function addOutfit() {
-    const itemsSelect = document.getElementById('aoitems');
-    const selectedItemNames = Array.from(itemsSelect.selectedOptions).map(option => option.value);
-    const selectedItems = selectedItemNames.map(itemName => getItemByName(itemName));
-
-    const weatherDropdown = document.getElementById('aoweather');
-    const weather = weatherDropdown.value;
-
-    const starsDropdown = document.getElementById('aostars');
-    const stars = starsDropdown.value;
-
-    const itemsValidity = selectedItems ? "" : "Select at least one item."
-    itemsSelect.setCustomValidity(itemsValidity);
-    const weatherValidity = weather ? "" : "Select weather."
-    weatherDropdown.setCustomValidity(weatherValidity);
-    const starsValidity = stars ? "" : "Select stars.";
-    starsDropdown.setCustomValidity(starsValidity);
-
-    if (itemsValidity || weatherValidity || starsValidity) {
-        return
-    } else {
-        outfits.push(new Outfit(selectedItems, weather, stars))
-    }
-    
-    saveData()
-    showOutfits()
-}
-
-
-
-
-function toggleEditing(itemComponent, toggle=null) {
-    editOptions = itemComponent.querySelector(".cedit")
-    editing = toggle != null ? toggle : editOptions.classList.contains('hidden');
-    
-    editOptions.classList.toggle('hidden', !editing);
-    itemComponent.querySelector(".cupdate-button").classList.toggle('hidden', !editing);
-    itemComponent.querySelector(".cdelete-button").classList.toggle('hidden', !editing);
-    itemComponent.querySelector(".cinfo").classList.toggle('hidden', editing);
-    
-    buttonText = editing ? "Cancel" : "Edit";
-    itemComponent.querySelector(".cedit-button").textContent = buttonText;
-}
 
 function populateDropdown(element, textContent, value=null, defaultValue=null) {
+    element.innerHTML= '';
     for (let i = 0; i < textContent.length; i++) {
         const option = document.createElement('option');
         option.textContent = textContent[i];
@@ -386,7 +171,7 @@ function populateDropdown(element, textContent, value=null, defaultValue=null) {
     }
     if (defaultValue) {
         if (Array.isArray(defaultValue)) {
-            for (option of Array.from(element.options)) {
+            for (const option of Array.from(element.options)) {
                 option.selected = defaultValue.includes(option.value);
             }
         }
@@ -396,63 +181,27 @@ function populateDropdown(element, textContent, value=null, defaultValue=null) {
     }
 }
 
-function initOutfitsPage() {
-    initNavbar();
-    getSavedData();
-    showOutfits();
-
-    const itemsSelect = document.getElementById('aoitems')
-    populateDropdown(itemsSelect, items.map(item => item.name))
-    const weatherDropdown = document.getElementById('aoweather')
-    populateDropdown(weatherDropdown, Object.keys(WEATHER))
-    const starsDropdown = document.getElementById('aostars');
-    const starsValueList = [...Array(5).keys()].map(n => n + 1)
-    const starSymbolsList = starsValueList.map(num => Array(num+1).join(STAR_UNICODE))
-    populateDropdown(starsDropdown, starSymbolsList, starsValueList)
-    
+function initAddButton() {
     const addItemButton = document.getElementById('add-button');
     addItemButton.addEventListener("click", () => {
         const addDialog = document.getElementById("add-dialog");
         addDialog.showModal();
     })
-    
-    const submitItemButton = document.getElementById('add-submit');
-    submitItemButton.addEventListener("click", () => {
-        addOutfit();
-        
-        const form = document.getElementById("add-form");
-        if (form.checkValidity()) {
-            form.reset();
-        }
-    })
+}
+
+function initOutfitsPage() {
+    getSavedData();
+    showOutfits();
+    initAddButton();
 }
 
 function initItemsPage() {
-    initNavbar();
     getSavedData();
     showItems();
-
-    // populate dropdowns and add events for Add Item Form
-    const typesDropdown = document.getElementById('aitype')
-    populateDropdown(typesDropdown, Object.keys(ITEM_TYPES));
-    const addItemButton = document.getElementById('add-button');
-    addItemButton.addEventListener("click", () => {
-        const addDialog = document.getElementById("add-dialog");
-        addDialog.showModal();
-    })
-    const submitItemButton = document.getElementById('add-submit');
-    submitItemButton.addEventListener("click", () => {
-        addItem();
-        
-        const form = document.getElementById("add-form");
-        if (form.checkValidity()) {
-            form.reset();
-        }
-    })
+    initAddButton();
 }
 
 function initSettingsPage() {
-    initNavbar();
     getSavedData();
 
     const uploadForm = document.getElementById('uploadForm');
@@ -503,19 +252,585 @@ function initSettingsPage() {
 
 }
 
-async function initNavbar() {
-    const response = await fetch('components/nav.html');
-    const text = await response.text();
-    const parser = new DOMParser();
-    const navSourceDoc = parser.parseFromString(text, 'text/html');
-    const navSourceDiv = navSourceDoc.getElementById('navbar');
 
-    if (navSourceDiv) {
-        document.getElementById('navbar').replaceWith(navSourceDiv)
+class NavBar extends HTMLElement {
+    constructor() {
+        super();
     }
 
-    const currentPage = document.body.dataset.page;
-    const navId = `${currentPage}-nav`
-    const pageNavElement = document.getElementById(navId)
-    pageNavElement.className = "active"
+    async connectedCallback() {
+        try {
+            const response = await fetch('components/nav.html');
+            const htmlText = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlText, 'text/html');
+            this.innerHTML = doc.body.innerHTML;
+
+            // set up highlight
+            const currentPage = document.body.dataset.page;
+            const navClass = `.${currentPage}-nav`;
+            const pageNavElement = this.querySelector(navClass);
+            pageNavElement.classList.toggle('active', true);
+        } catch (error) {
+            console.error(`Failed to load external html`, error);
+        }
+    }
 }
+customElements.define('nav-bar', NavBar);
+
+
+class ItemInput extends HTMLElement {
+    constructor() {
+        super();
+    }
+
+    async connectedCallback() {
+        try {
+            const response = await fetch('components/item-input.html');
+            const htmlText = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlText, 'text/html');
+            this.innerHTML = doc.body.innerHTML;
+            this.setup()
+        } catch (error) {
+            console.error(`Failed to load external html`, error);
+        }
+    }
+
+    setup() {
+        this.nameInput = this.querySelector('.name-input');
+        this.typeSelect = this.querySelector('.type-select');
+        this.wishlistCheckbox = this.querySelector('.wishlist-checkbox');
+        this.wornCheckbox = this.querySelector('.worn-checkbox');
+
+        // populate dropdowns and add events submission
+        populateDropdown(this.typeSelect, Object.keys(ITEM_TYPES));
+        this.typeSelect.selectedIndex = -1;
+
+        const submitButton = this.querySelector('.submit-button');
+        submitButton.addEventListener("click", () => {
+            this.handleSubmit()
+        })
+
+        const cancelButton = this.querySelector('.cancel-button');
+        cancelButton.addEventListener("click", () => {
+            this.handleCancel()
+        })
+    }
+
+    handleSubmit() {}
+    handleCancel() {}
+}
+
+
+class ItemAdd extends ItemInput {
+    constructor() {
+        super();
+    }
+
+    handleSubmit() {
+        const name = this.nameInput.value;
+        const type = this.typeSelect.value;
+        const wishlist = this.wishlistCheckbox.checked;
+
+        // add item to list
+        let nameValidity = ""
+        if (!name) {
+            nameValidity = "Invalid field"
+        } else if (items.map(item => item.name).includes(name)) {
+            nameValidity = "Item already exists."
+        }
+        this.nameInput.setCustomValidity(nameValidity)
+        
+        let typeValidity = type ? "" : "Select a type."
+        this.typeSelect.setCustomValidity(typeValidity)
+
+        if (nameValidity || typeValidity) {
+            return
+        } else {
+            items.push(new Item(name, type, wishlist))
+        }
+
+        saveData()
+        showItems()
+            
+        const form = this.querySelector("form");
+        if (form.checkValidity()) {
+            form.reset();
+        }
+    }
+}
+customElements.define('item-add', ItemAdd);
+
+
+class ItemEdit extends ItemInput {
+    constructor(item, itemComponent) {
+        super();
+        this.item = item;
+        this.itemComponent = itemComponent;
+    }
+
+    setup() {
+        super.setup()
+        this.nameInput.value = this.item.name;
+        this.typeSelect.value = this.item.type;
+        this.wishlistCheckbox.checked = this.item.wishlist;
+        this.wornCheckbox.checked = this.item.worn;
+    }
+
+    handleSubmit() {
+        this.item.name = this.nameInput.value;
+        this.item.type = this.typeSelect.value;
+        this.item.wishlist = this.wishlistCheckbox.checked;
+        this.item.worn = this.wornCheckbox.checked;
+
+        this.dispatchEvent(new CustomEvent('editing-submitted', {}));
+    }
+
+    handleCancel() {
+        this.dispatchEvent(new CustomEvent('editing-canceled', {}));
+    }
+}
+customElements.define('item-edit', ItemEdit);
+
+
+class ItemFilter extends ItemInput {
+    constructor() {
+        super();
+    }
+
+    setup() {
+        super.setup()
+        // change Submit button to say Filter, hide Cancel button
+        const submitButton = this.querySelector('.submit-button');
+        submitButton.textContent = "Filter";
+        const cancelButton = this.querySelector('.cancel-button');
+        cancelButton.classList.toggle("hidden", true);
+
+        // make type dropdown multi select
+        this.typeSelect.multiple = true;
+
+        // change checkboxes to tristate checkboxes
+        this.triStateWishlistCheckbox = document.createElement('tristate-checkbox');
+        this.wishlistCheckbox.replaceWith(this.triStateWishlistCheckbox);
+
+        this.triStateWornCheckbox = document.createElement('tristate-checkbox');
+        this.wornCheckbox.replaceWith(this.triStateWornCheckbox);
+    }
+
+    handleSubmit() {
+        const name = this.nameInput.value;
+        const type = Array.from(this.typeSelect.selectedOptions).map(option => option.value);
+        const wishlist = this.triStateWishlistCheckbox.currState;
+        const worn = this.triStateWornCheckbox.currState;
+        
+        const filter = {
+            'name': name, // string
+            'type': type, // string array
+            'wishlist': wishlist, // TriStateCheckbox.state
+            'worn': worn // TriStateCheckbox.state
+        }
+        showItems(filter)
+    }
+}
+customElements.define('item-filter', ItemFilter);
+
+
+class TriStateCheckbox extends HTMLElement {
+    static state = {
+        EXCLUDE: 0,
+        INCLUDE: 1,
+        NEUTRAL: 2
+    }
+
+    constructor() {
+        super();
+        this.currState = TriStateCheckbox.state.NEUTRAL;
+    }
+
+    async connectedCallback() {
+        this.innerHTML = "<input type='checkbox'>"
+        this.setup()
+    }
+
+    setup() {
+        const checkbox = this.querySelector('input')
+        checkbox.addEventListener('click', (e) => {    
+            this.currState = (this.currState + 2) % 3; // 2 comes from (-1 + 3) to reverse modulo 3
+
+            if (this.currState === TriStateCheckbox.state.EXCLUDE) {
+                checkbox.checked = false;
+                checkbox.indeterminate = true;
+            } else if (this.currState === TriStateCheckbox.state.INCLUDE) {
+                checkbox.checked = true;
+                checkbox.indeterminate = false;
+            } else if (this.currState === TriStateCheckbox.state.NEUTRAL) {
+                checkbox.checked = false;
+                checkbox.indeterminate = false;
+            }
+        });
+    }
+}
+customElements.define('tristate-checkbox', TriStateCheckbox);
+
+
+
+class ItemComponent extends HTMLElement {
+    constructor(item) {
+        super();
+        this.item = item;
+    }
+
+    async connectedCallback() {
+        try {
+            const response = await fetch('components/item.html');
+            const htmlText = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlText, 'text/html');
+            this.innerHTML = doc.body.innerHTML;
+            this.setup()
+        } catch (error) {
+            console.error(`Failed to load external html`, error);
+        }
+    }
+
+    setup() {
+        this.updateInfo();
+        const itemEditPlaceholder = this.querySelector('.edit-placeholder');
+        const itemEdit = new ItemEdit(this.item, this)
+        itemEditPlaceholder.replaceWith(itemEdit);
+        itemEdit.classList.add('hidden');
+
+        // add button listeners
+        const editButton = this.querySelector(".edit-button");
+        editButton.addEventListener("click", () => {
+            this.toggleEditing();
+            this.scrollToFit()
+        })
+
+        const deleteButton = this.querySelector(".delete-button");
+        deleteButton.addEventListener("click", () => {
+            items = items.filter(currItem => currItem !== this.item)
+            saveData()
+            showItems()
+        })
+
+        const details = this.querySelector('details')
+        details.addEventListener('toggle', () => {
+            this.scrollToFit()
+        })
+
+        itemEdit.addEventListener('editing-submitted', () => {
+            this.toggleEditing();
+            this.updateInfo();
+            saveData();
+        })
+
+        itemEdit.addEventListener('editing-canceled', () => {
+            this.toggleEditing();
+        })
+    }
+
+    updateInfo() {
+        this.querySelector('.item-name').textContent = this.item.name;
+        let itemInfo = `${this.item.type}`;
+        if (this.item.wishlist) { itemInfo += "\nwishlist" };
+        if (this.item.worn) { itemInfo += "\nworn"};
+        this.querySelector(".component-info").textContent = itemInfo;
+    }
+    
+    toggleEditing(toggle=null) {
+        const editOptions = this.querySelector("item-edit");
+        const editing = toggle != null ? toggle : editOptions.classList.contains('hidden');
+        editOptions.classList.toggle('hidden', !editing);
+        this.querySelector(".component-info").classList.toggle('hidden', editing);
+    }
+    
+    scrollToFit() {
+        const details = this.querySelector('details')
+        if (details.open) {
+            setTimeout(() => {
+                this.scrollIntoView({
+                    behavior: 'smooth', block: 'nearest', inline:'nearest'
+                });
+            }, 50);
+        }
+    }
+}
+customElements.define('item-component', ItemComponent);
+
+
+
+class OutfitInput extends HTMLElement {
+    constructor() {
+        super();
+    }
+
+    async connectedCallback() {
+        try {
+            const response = await fetch('components/outfit-input.html');
+            const htmlText = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlText, 'text/html');
+            this.innerHTML = doc.body.innerHTML;
+            this.setup()
+        } catch (error) {
+            console.error(`Failed to load external html`, error);
+        }
+    }
+
+    setup() {
+        this.itemsSelect = this.querySelector('.items-select');
+        this.weatherSelect = this.querySelector('.weather-select');
+        this.starsSelect = this.querySelector('.stars-select');
+        this.availableCheckbox = this.querySelector('.available-checkbox');
+        this.wishlistCheckbox = this.querySelector('.wishlist-checkbox');
+
+        // populate dropdowns and add events submission
+        populateDropdown(this.itemsSelect, items.map(item => item.name));
+        this.itemsSelect.value = -1;
+        populateDropdown(this.weatherSelect, Object.keys(WEATHER));
+        this.weatherSelect.value = -1;
+        const starsValueList = [...Array(5).keys()].map(n => n + 1);
+        const starSymbolsList = starsValueList.map(num => Array(num+1).join(STAR_UNICODE));
+        populateDropdown(this.starsSelect, starSymbolsList, starsValueList);
+        this.starsSelect.value = -1;
+
+        const submitButton = this.querySelector('.submit-button');
+        submitButton.addEventListener("click", () => {
+            this.handleSubmit()
+        })
+
+        const cancelButton = this.querySelector('.cancel-button');
+        cancelButton.addEventListener("click", () => {
+            this.handleCancel()
+        })
+    }
+}
+
+
+class OutfitAdd extends OutfitInput {
+    constructor() {
+        super();
+    }
+
+    setup() {
+        super.setup();
+        this.availableCheckbox.classList.add('hidden');
+        this.querySelector("label[for='available-checkbox']").classList.add('hidden');
+    }
+
+    handleSubmit() {
+        const selectedItemNames = Array.from(this.itemsSelect.selectedOptions).
+                                    map(option => option.value);
+        const selectedItems = selectedItemNames.map(itemName => getItemByName(itemName));
+        const weather = this.weatherSelect.value;
+        const stars = this.starsSelect.value;
+        
+        const itemsValidity = selectedItems ? "" : "Select at least one item."
+        this.itemsSelect.setCustomValidity(itemsValidity);
+        const weatherValidity = weather ? "" : "Select weather."
+        this.weatherSelect.setCustomValidity(weatherValidity);
+        const starsValidity = stars ? "" : "Select stars.";
+        this.starsSelect.setCustomValidity(starsValidity);
+
+        if (itemsValidity || weatherValidity || starsValidity) {
+            return
+        } else {
+            outfits.push(new Outfit(selectedItems, weather, stars))
+        }
+
+        saveData()
+        showOutfits()
+            
+        const form = this.querySelector("form");
+        if (form.checkValidity()) {
+            form.reset();
+        }
+    }
+}
+customElements.define('outfit-add', OutfitAdd);
+
+
+class OutfitEdit extends OutfitInput {
+    constructor(outfit, outfitComponent) {
+        super();
+        this.outfit = outfit;
+        this.outfitComponent = outfitComponent;
+    }
+
+    setup() {
+        super.setup()
+        populateDropdown(this.itemsSelect, items.map(item => item.name), null, this.outfit.items.map(item => item.name))
+        populateDropdown(this.weatherSelect, Object.keys(WEATHER), null, this.outfit.weather)
+        const starsValueList = [...Array(5).keys()].map(n => n + 1)
+        const starSymbolsList = starsValueList.map(num => Array(num+1).join(STAR_UNICODE))
+        populateDropdown(this.starsSelect, starSymbolsList, starsValueList, this.outfit.stars)
+        this.availableCheckbox.checked = this.outfit.isAvailable()
+    }
+
+    handleSubmit() {
+        const selectedItemNames = Array.from(this.itemsSelect.selectedOptions).
+                                    map(option => option.value);
+        this.outfit.items = selectedItemNames.map(itemName => getItemByName(itemName));
+        this.outfit.weather = this.weatherSelect.value;
+        this.outfit.stars = parseInt(this.starsSelect.value, 10);
+
+        if (this.availableCheckbox.checked != this.outfit.isAvailable()) {
+            for (const item of this.outfit.items) {
+                const excludedTypes = ['accessory', 'outerwear', 'shoes']
+                if (!excludedTypes.includes(item.type)) {
+                    item.worn = !this.availableCheckbox.checked;
+                }
+            }
+        }
+        this.dispatchEvent(new CustomEvent('editing-submitted', {}));
+    }
+
+    handleCancel() {
+        this.dispatchEvent(new CustomEvent('editing-canceled', {}));
+    }
+}
+customElements.define('outfit-edit', OutfitEdit);
+
+
+class OutfitFilter extends OutfitInput {
+    constructor() {
+        super();
+    }
+
+    setup() {
+        super.setup()
+        // change Submit button to say Filter, hide Cancel button
+        const submitButton = this.querySelector('.submit-button');
+        submitButton.textContent = "Filter";
+        const cancelButton = this.querySelector('.cancel-button');
+        cancelButton.classList.toggle("hidden", true);
+
+        // make dropdowns multi select
+        this.weatherSelect.multiple = true;
+        this.starsSelect.multiple = true;
+
+        // change checkboxes to tristate checkboxes
+        this.triStateAvailableCheckbox = document.createElement('tristate-checkbox');
+        this.availableCheckbox.replaceWith(this.triStateAvailableCheckbox);
+
+        // unhide wishlist option
+        const wishlistCheckboxLabel = this.querySelector('label[for="wishlist-checkbox"]')
+        this.wishlistCheckbox.classList.remove('hidden');
+        wishlistCheckboxLabel.classList.remove('hidden');
+
+    }
+
+    handleSubmit() {
+        const selectedItemNames = Array.from(this.itemsSelect.selectedOptions).
+                                    map(option => option.value);
+        const weather = Array.from(this.weatherSelect.selectedOptions).map(option => option.value);
+        const stars = Array.from(this.starsSelect.selectedOptions).map(option => parseInt(option.value, 10));
+        const available = this.triStateAvailableCheckbox.currState;
+        const wishlist = this.wishlistCheckbox.currState;
+        
+
+        const filter = {
+            'items': selectedItemNames,  // string array
+            'weather': weather,  // string
+            'stars': stars,  // number
+            'available': available,  // TriStateCheckbox.state
+            'wishlist': wishlist  // TriStateCheckbox.state
+        }
+        showOutfits(filter)
+    }
+}
+customElements.define('outfit-filter', OutfitFilter);
+
+
+class OutfitComponent extends HTMLElement {
+    constructor(outfit) {
+        super();
+        this.outfit = outfit;
+    }
+
+    async connectedCallback() {
+        try {
+            const response = await fetch('components/outfit.html');
+            const htmlText = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlText, 'text/html');
+            this.innerHTML = doc.body.innerHTML;
+            this.setup()
+        } catch (error) {
+            console.error(`Failed to load external html`, error);
+        }
+    }
+
+    setup() {
+        this.updateInfo();
+        const editPlaceholder = this.querySelector('.edit-placeholder');
+        const outfitEdit = new OutfitEdit(this.outfit, this);
+        editPlaceholder.replaceWith(outfitEdit);
+        outfitEdit.classList.add('hidden');
+
+        // add button listeners
+        const editButton = this.querySelector(".edit-button");
+        editButton.addEventListener("click", () => {
+            this.toggleEditing();
+            this.scrollToFit()
+        })
+
+        const deleteButton = this.querySelector(".delete-button");
+        deleteButton.addEventListener("click", () => {
+            outfits = outfits.filter(currOutfit => currOutfit != this.outfit);
+            saveData();
+            showOutfits();
+        })
+
+        const details = this.querySelector('details')
+        details.addEventListener('toggle', () => {
+            this.scrollToFit()
+        })
+
+        outfitEdit.addEventListener('editing-submitted', () => {
+            this.toggleEditing();
+            this.updateInfo();
+            saveData();
+        })
+
+        outfitEdit.addEventListener('editing-canceled', () => {
+            this.toggleEditing();
+        })
+    }
+
+    updateInfo() {
+        const outfitItems = this.outfit.items.map(item => item.name).join(", ")
+        this.querySelector(".outfit-items").textContent = outfitItems;
+
+        let outfitInfo = `${this.outfit.weather}`
+        outfitInfo += `\n${Array(parseInt(this.outfit.stars, 10)+1).join(STAR_UNICODE)}`
+        if (this.outfit.isAvailable()) {
+            outfitInfo += "\navailable \u2714"
+        } else {
+            outfitInfo += "\nworn"
+        }
+        if (this.outfit.isWishlist()) { outfitInfo += "\nwishlist"}
+        this.querySelector(".component-info").textContent = outfitInfo;
+    }
+    
+    toggleEditing(toggle=null) {
+        const editOptions = this.querySelector("outfit-edit");
+        const editing = toggle != null ? toggle : editOptions.classList.contains('hidden');
+        editOptions.classList.toggle('hidden', !editing);
+        this.querySelector(".component-info").classList.toggle('hidden', editing);
+    }
+    
+    scrollToFit() {
+        const details = this.querySelector('details')
+        if (details.open) {
+            setTimeout(() => {
+                this.scrollIntoView({
+                    behavior: 'smooth', block: 'nearest', inline:'nearest'
+                });
+            }, 50);
+        }
+    }
+}
+customElements.define('outfit-component', OutfitComponent);

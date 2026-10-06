@@ -2,7 +2,7 @@ var GHPATH = '/closet';
  
 var APP_PREFIX = 'closet_';
  
-var VERSION = 'version_01';
+var VERSION = 'version_02';
  
 var URLS = [    
   `index.html`,
