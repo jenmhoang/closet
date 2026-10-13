@@ -1,21 +1,24 @@
-<form method="dialog">
-    <div>
-        <label for="name-input">Name:</label>
-        <input type="text" class="name-input">
-        <br>
-        <label for="type-select">Type:</label>
-        <select class="type-select">
-        </select>
-        <br>
-        <label for="wishlist-checkbox">Wishlist:</label>
-        <input type="checkbox" class="wishlist-checkbox">
-        <br>
-        <label for="worn-checkbox">Worn:</label>
-        <input type="checkbox" class="worn-checkbox">
-        <br>
+<form class='input-form' method="dialog">
+    <div class="input-options">
+        <label for="name-input">
+            Name
+            <input type="text" placeholder=" " class="name-input">
+            <button type="reset" class="clear-button"></button>
+        </label>
+        <label>
+            Type
+            <select class="type-select"></select>
+        </label>
+        <label>
+            <input type="checkbox" class="wishlist-checkbox">
+            Wishlist
+        </label>
+        <label>
+            <input type="checkbox" class="worn-checkbox">
+            Worn
+        </label>
     </div>
-
-    <div>
+    <div class="input-buttons">
         <button type="submit" class="cancel-button" formnovalidate>Cancel</button>
         <button type="submit" class="submit-button">Submit</button>
     </div>

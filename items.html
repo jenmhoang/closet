@@ -5,18 +5,32 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body data-page="items">
-    <div id="header">
-        <h2>Items</p>
-    </div>
+    <div id="backdrop" class="hidden"></div>
     <div id="page-content">
-        <item-filter></item-filter>
+        <h2>Items</h2>
+        <div class="filter-sort-buttons">
+            <button id="filter-button">
+                <img src="/icons/filter.svg" class="icon">
+                Filter
+            </button>
+            <div>
+                <button id="sort-button">
+                    Sort By
+                    <img src="/icons/sort.svg" class="icon">
+                </button>
+                <item-sort class="hidden"></item-sort>
+            </div>
+        </div>
+        <item-filter class="hidden"></item-filter>
         <div id="components-list"></div>
     </div>
-    <button id="add-button">+</button>
-    <dialog id="add-dialog">
-        <h2>Add Item</h2>
-        <item-add></item-add>
-    </dialog>
+    <button id="add-button">
+        <span id="add-icon"></span>
+    </button>
+    <bottom-sheet>
+        <item-add slot="content"></item-add>
+    </bottom-sheet>
+</div>
     <nav-bar></nav-bar>
     <script src="app.js" onload="initItemsPage()"></script>
 </body>

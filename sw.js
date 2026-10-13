@@ -2,7 +2,7 @@ var GHPATH = '/closet';
  
 var APP_PREFIX = 'closet_';
  
-var VERSION = 'version_02';
+var VERSION = 'version_03';
  
 var URLS = [    
   `index.html`,
@@ -11,6 +11,9 @@ var URLS = [
   `components/nav.html`,
   `components/item.html`,
   `components/outfit.html`,
+  `components/item-input.html`,
+  `components/outfit-input.html`,
+  `components/bottom-sheet.html`,
   `styles.css`,
   `app.js`
 ]

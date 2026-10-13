@@ -18,6 +18,49 @@ const ITEM_TYPES = {
     'shoes': 10
 }
 
+const ITEM_COLORS = {
+    "pink": {
+        "light": "rgb(233, 154, 200)",
+        "dark": "rgb(177, 62, 129)",
+    },
+    "white": {
+        "light": "rgb(221, 221, 221)",
+        "dark": "rgb(58, 58, 58)"
+    },
+    "blue": {
+        "light": "rgb(194, 205, 255)",
+        "dark": "rgb(49, 71, 145)"
+    },
+    "purple": {
+        "light": "rgb(228, 194, 255)",
+        "dark": "rgb(125, 71, 168)",
+    },
+    "red": {
+        "light": "rgb(206, 126, 143)",
+        "dark": "rgb(143, 38, 65)"
+    },
+    "burgundy": {
+        "light": "rgb(206, 126, 143)",
+        "dark": "rgb(143, 38, 65)"
+    },
+    "black": {
+        "light": "rgb(94, 94, 94)",
+        "dark": "rgb(0, 0, 0)"
+    },
+    "cream": {
+        "light": "rgb(235, 204, 190)",
+        "dark": "rgb(129, 66, 37)"
+    },
+    "beige": {
+        "light": "rgb(248, 225, 214)",
+        "dark": "rgb(129, 66, 37)"
+    },
+    "pearl": {
+        "light": "rgb(221, 221, 221)",
+        "dark": "rgb(58, 58, 58)"
+    },
+}
+
 const STAR_UNICODE = '\u2605'
 
 var outfits = []
@@ -90,30 +133,45 @@ function getSavedData() {
 }
 
 
-function showItems(filter={}) {
+function showItems() {
     const componentsDiv = document.getElementById('components-list')
     componentsDiv.replaceChildren()
 
     filteredItems = items;
-    if (Object.keys(filter).length != 0) {
-        if (filter?.['name'] && filter['name'].trim()) { // string
-            filteredItems = filteredItems.filter(item => item.name.includes(filter['name']))
-        }
-        if (filter?.['type'] && filter['type'].length > 0) {
-            filteredItems = filteredItems.filter(item => filter['type'].includes(item.type))
-        }
-        if (Object.keys(filter).includes('wishlist') &&
-                filter['wishlist'] != TriStateCheckbox.state.NEUTRAL) {
-            filteredItems = filteredItems.filter(item => item.wishlist == filter['wishlist'])
-        }
-        if (Object.keys(filter).includes('worn') && 
-                filter['worn'] != TriStateCheckbox.state.NEUTRAL) {
-            filteredItems = filteredItems.filter(item => item.worn == filter['worn'])
-        }
-        if (Object.keys(filter).includes('wishlist') && 
-                filter['wishlist'] != TriStateCheckbox.state.NEUTRAL) {
-            filteredItems = filteredItems.filter(item => item.wishlist == filter['wishlist'])
-        }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const name = urlParams.get('name');
+    if (name) {
+        filteredItems = filteredItems.filter(item => item.name.includes(name))
+    }
+    const types = urlParams.getAll('type');
+    if (types.length > 0) {
+        filteredItems = filteredItems.filter(item => types.includes(item.type))
+    }
+    const wishlist = urlParams.get('wishlist');
+    if (wishlist != null) {
+        filteredItems = filteredItems.filter(item => item.wishlist == wishlist)
+    }
+    const worn = urlParams.get('worn');
+    if (worn != null) {
+        filteredItems = filteredItems.filter(item => item.worn == worn)
+    }
+
+    const sortby = urlParams.get('sortby')
+    if (sortby != null) {
+        filteredItems = [...filteredItems].sort((a, b) => {
+            const aVal = a[sortby];
+            const bVal = b[sortby];
+
+            if (sortby == 'type') {
+                return ITEM_TYPES[aVal] - ITEM_TYPES[bVal];
+            }
+        
+            if (typeof aVal === 'string' && typeof bVal === 'string') {
+                return aVal.localeCompare(bVal);
+            }       
+            return aVal - bVal;
+        })
     }
 
     for (const item of filteredItems) {
@@ -128,11 +186,10 @@ function showOutfits(filter={}) {
     componentsDiv.replaceChildren()
     
     filteredOutfits = outfits;
-    if (Object.keys(filter).length != 0) {
+    if (filter && Object.keys(filter).length != 0) {
         if (filter?.['items'] && filter['items'].length > 0) {
             filteredOutfits = filteredOutfits.filter(outfit => 
                 filter['items'].some(itemName => outfit.items.map(item => item.name).includes(itemName)))
-            console.log(filteredOutfits)
         }
         if (filter?.['weather'] && filter['weather'].length > 0) {
             filteredOutfits = filteredOutfits.filter(outfit => filter['weather'].includes(outfit.weather))
@@ -182,10 +239,34 @@ function populateDropdown(element, textContent, value=null, defaultValue=null) {
 }
 
 function initAddButton() {
+    const bottomSheet = document.querySelector('bottom-sheet');
+    const itemAdd = new ItemAdd();
+    bottomSheet.addStep(itemAdd, "Add Item")
+
+    const closeEvents = ['add-submitted', 'add-canceled']
+    closeEvents.forEach(event => {
+        itemAdd.addEventListener(event,  () => {
+            bottomSheet.closeSheet()
+        });
+    })
+    
     const addItemButton = document.getElementById('add-button');
     addItemButton.addEventListener("click", () => {
-        const addDialog = document.getElementById("add-dialog");
-        addDialog.showModal();
+        bottomSheet.openSheet()
+    })
+}
+
+function initFilterSortButtons() {
+    const filterButton = document.getElementById('filter-button')
+    filterButton.addEventListener("click", () => {
+        const itemFilter = document.querySelector("item-filter");
+        itemFilter.classList.toggle("hidden");
+    })
+
+    const sortButton = document.getElementById('sort-button')
+    sortButton.addEventListener("click", () => {
+        const itemSort = document.querySelector("item-sort");
+        itemSort.classList.toggle("hidden");
     })
 }
 
@@ -199,6 +280,7 @@ function initItemsPage() {
     getSavedData();
     showItems();
     initAddButton();
+    initFilterSortButtons();
 }
 
 function initSettingsPage() {
@@ -277,6 +359,55 @@ class NavBar extends HTMLElement {
     }
 }
 customElements.define('nav-bar', NavBar);
+
+
+class ItemSort extends HTMLElement {
+    constructor() {
+        super();
+    }
+
+    connectedCallback() {
+        this.innerHTML = `
+                <div id="sort">
+                    <button>Name</button>
+                    <button>Type</button>
+                    <button>Wishlist</button>
+                    <button>Worn</button>
+                </div>
+        `;
+        this.setup();
+    }
+
+    setup() {
+        const buttons = this.querySelectorAll('button');
+        const urlParams = new URLSearchParams(window.location.search);
+        const sortby = urlParams.get('sortby')
+        buttons.forEach(button => {
+            if (sortby && sortby == button.textContent.toLowerCase()) {
+                button.classList.toggle('active', true)
+            }
+
+            button.addEventListener("click", () => {
+                const url = new URL(window.location.href);
+                const param = button.textContent.toLowerCase();
+                if (url.searchParams.get('sortby') == param) {
+                    url.searchParams.delete('sortby');
+                    button.classList.remove('active');
+                } else {
+                    url.searchParams.set('sortby', param);
+                    buttons.forEach((btn) => btn.classList.remove('active'));
+                    button.classList.add('active');
+                }
+                window.history.pushState({}, '', url);
+                showItems();
+                setTimeout(() => {
+                    this.classList.toggle('hidden', true);
+                }, 200)
+            })
+        })
+    }
+}
+customElements.define('item-sort', ItemSort);
 
 
 class ItemInput extends HTMLElement {
@@ -358,6 +489,12 @@ class ItemAdd extends ItemInput {
         if (form.checkValidity()) {
             form.reset();
         }
+        
+        this.dispatchEvent(new CustomEvent('add-submitted', {}));
+    }
+
+    handleCancel() {
+        this.dispatchEvent(new CustomEvent('add-canceled', {}));
     }
 }
 customElements.define('item-add', ItemAdd);
@@ -401,37 +538,92 @@ class ItemFilter extends ItemInput {
 
     setup() {
         super.setup()
-        // change Submit button to say Filter, hide Cancel button
+
+        // change Submit button to Filter, Cancel to Reset
         const submitButton = this.querySelector('.submit-button');
         submitButton.textContent = "Filter";
         const cancelButton = this.querySelector('.cancel-button');
-        cancelButton.classList.toggle("hidden", true);
+        cancelButton.type = "reset";
+        cancelButton.textContent = "Reset";
 
         // make type dropdown multi select
         this.typeSelect.multiple = true;
 
         // change checkboxes to tristate checkboxes
-        this.triStateWishlistCheckbox = document.createElement('tristate-checkbox');
+        this.triStateWishlistCheckbox = new TriStateCheckbox();
         this.wishlistCheckbox.replaceWith(this.triStateWishlistCheckbox);
 
-        this.triStateWornCheckbox = document.createElement('tristate-checkbox');
+        this.triStateWornCheckbox = new TriStateCheckbox();
         this.wornCheckbox.replaceWith(this.triStateWornCheckbox);
+
+        // display current selections
+        const urlParams = new URLSearchParams(window.location.search);
+        const name = urlParams.get('name');
+        if (name) {
+            this.nameInput.textContent = name;
+        }
+        const types = urlParams.getAll('type');
+        if (types.length > 0) {
+            for (const option of this.typeSelect.options) {
+                option.selected = types.includes(option.value);
+            }
+        }
+        const wishlist = urlParams.get('wishlist');
+        if (wishlist != null) {
+            this.triStateWishlistCheckbox.currState = wishlist;
+        }
+        const worn = urlParams.get('worn');
+        if (worn != null) {
+            this.triStateWornCheckbox.currState = worn;
+        }
+
+    }
+
+    updateFilterParams() {
+        const name = this.nameInput.value;
+        const types = Array.from(this.typeSelect.selectedOptions).map(option => option.value);
+        const wishlist = this.triStateWishlistCheckbox.currState;
+        const worn = this.triStateWornCheckbox.currState;
+
+        const url = new URL(window.location.href);
+
+        if (name) {
+            url.searchParams.set('name', name);
+        } else {
+            url.searchParams.delete('name');
+        }
+
+        url.searchParams.delete('type');
+        types.forEach(type => url.searchParams.append('type', type));
+        
+        if (wishlist == TriStateCheckbox.state.NEUTRAL) {
+            url.searchParams.delete('wishlist')
+        } else {
+            url.searchParams.set('wishlist', wishlist);
+        }
+
+        if (worn == TriStateCheckbox.state.NEUTRAL) {
+            url.searchParams.delete('worn')
+        } else {
+            url.searchParams.set('worn', worn);
+        }
+        
+        window.history.pushState({}, '', url);
+
+        showItems();
+        this.classList.toggle("hidden", true);
     }
 
     handleSubmit() {
-        const name = this.nameInput.value;
-        const type = Array.from(this.typeSelect.selectedOptions).map(option => option.value);
-        const wishlist = this.triStateWishlistCheckbox.currState;
-        const worn = this.triStateWornCheckbox.currState;
-        
-        const filter = {
-            'name': name, // string
-            'type': type, // string array
-            'wishlist': wishlist, // TriStateCheckbox.state
-            'worn': worn // TriStateCheckbox.state
-        }
-        showItems(filter)
+        this.updateFilterParams();
     }
+
+    handleCancel() {
+        setTimeout(() => {
+            this.updateFilterParams();
+        }, 1);
+    }
+
 }
 customElements.define('item-filter', ItemFilter);
 
@@ -469,11 +661,110 @@ class TriStateCheckbox extends HTMLElement {
                 checkbox.indeterminate = false;
             }
         });
+
+        const parentForm = this.closest('form'); 
+        parentForm.addEventListener('reset', () => {
+            setTimeout(() => {
+                this.currState = TriStateCheckbox.state.NEUTRAL;
+                checkbox.checked = false;
+                checkbox.indeterminate = false;
+            }, 0);
+        });
     }
 }
 customElements.define('tristate-checkbox', TriStateCheckbox);
 
 
+class BottomSheet extends HTMLElement {
+    constructor() {
+        super();
+        this._isConnectedPromise = new Promise((resolve) => {
+            this._resolveConnected = resolve;
+        });
+    }
+
+    async connectedCallback() {
+        try {
+            const response = await fetch('components/bottom-sheet.html');
+            const htmlText = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlText, 'text/html');
+            this.innerHTML = doc.body.innerHTML;
+            this.setup()
+        } catch (error) {
+            console.error(`Failed to load external html`, error);
+        }
+    }
+
+    setup() {
+        const backdrop = document.getElementById('backdrop');
+        const closeButton = this.querySelector('.close-button');
+        const closeClickButtons = [backdrop, closeButton]
+        closeClickButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                this.closeSheet();
+            });
+        })
+        console.log('setup')
+        this._resolveConnected();
+
+        // const backButton = bottomSheet.querySelector('.back-button');
+        // backButton.addEventListener('click', () => {
+        //     if (activeStep > 1) {
+        //         goToStep(activeStep - 1);
+        //     }
+        // });
+    }
+
+    async addStep(element, stepTitle) {
+        await this._isConnectedPromise;
+
+        const steps = this.querySelectorAll('.sheet-step');
+        const currStep = steps.length + 1;
+        const sheetStep = document.createElement('div');
+        sheetStep.className = 'sheet-step active';
+        sheetStep.dataset.step = currStep;
+        sheetStep.dataset.title = stepTitle;
+
+        sheetStep.appendChild(element);
+        const sheetBody = this.querySelector('.sheet-body');
+        sheetBody.appendChild(sheetStep);
+        console.log(this)
+    }
+
+    async openSheet() {
+        await this._isConnectedPromise;
+
+        this.classList.add('show');
+        document.getElementById('backdrop').classList.toggle('hidden', false);
+        this.goToStep(1)
+    }
+
+    closeSheet() {
+        this.classList.remove('show');
+        document.getElementById('backdrop').classList.toggle('hidden', true);
+    }
+
+    goToStep(stepNumber) {
+        const steps = this.querySelectorAll('.sheet-step');
+        const targetStep = this.querySelector(`.sheet-step[data-step="${stepNumber}"]`);
+        if (!targetStep) return;
+
+        steps.forEach(step => step.classList.remove('active'));
+        targetStep.classList.add('active');
+        let activeStep = stepNumber;
+
+        const headerTitle = this.querySelector('.header-title');
+        headerTitle.textContent = targetStep.getAttribute('data-title');
+        
+        // if (activeStep > 1 && activeStep < steps.length) {
+        //     backButton.classList.remove('hidden');
+        // } else {
+        //     backButton.classList.add('hidden'); // Hide on Step 1 or Final completion screen
+        // }
+    }
+}
+customElements.define('bottom-sheet', BottomSheet);
 
 class ItemComponent extends HTMLElement {
     constructor(item) {
@@ -496,12 +787,14 @@ class ItemComponent extends HTMLElement {
 
     setup() {
         this.updateInfo();
-        const itemEditPlaceholder = this.querySelector('.edit-placeholder');
-        const itemEdit = new ItemEdit(this.item, this)
-        itemEditPlaceholder.replaceWith(itemEdit);
-        itemEdit.classList.add('hidden');
 
         // add button listeners
+        const itemButton = this.querySelector('.item-button');
+        itemButton.addEventListener('click', () => {
+            this.toggleOptions();
+            this.scrollToFit();
+        })
+
         const editButton = this.querySelector(".edit-button");
         editButton.addEventListener("click", () => {
             this.toggleEditing();
@@ -510,45 +803,76 @@ class ItemComponent extends HTMLElement {
 
         const deleteButton = this.querySelector(".delete-button");
         deleteButton.addEventListener("click", () => {
+            this.toggleOptions(false);
             items = items.filter(currItem => currItem !== this.item)
             saveData()
             showItems()
-        })
-
-        const details = this.querySelector('details')
-        details.addEventListener('toggle', () => {
-            this.scrollToFit()
-        })
-
-        itemEdit.addEventListener('editing-submitted', () => {
-            this.toggleEditing();
-            this.updateInfo();
-            saveData();
-        })
-
-        itemEdit.addEventListener('editing-canceled', () => {
-            this.toggleEditing();
         })
     }
 
     updateInfo() {
         this.querySelector('.item-name').textContent = this.item.name;
-        let itemInfo = `${this.item.type}`;
-        if (this.item.wishlist) { itemInfo += "\nwishlist" };
-        if (this.item.worn) { itemInfo += "\nworn"};
-        this.querySelector(".component-info").textContent = itemInfo;
+        const typeIcon = this.querySelector('.item-icon');
+        typeIcon.style.setProperty('--icon-src', `url('/icons/items/${this.item.type}.svg')`)
+        
+        for (const [color, colorValues] of Object.entries(ITEM_COLORS)) {
+            if (this.item.name.includes(color)) {
+                this.style.setProperty('--item-color-light', colorValues['light'])
+                this.style.setProperty('--item-color-dark', colorValues['dark'])
+                if (colorValues?.['outline']) {
+                    this.style.setProperty('--item-color-outline', colorValues['outline'])
+                } else {
+                    this.style.setProperty('--item-color-outline', colorValues['light'])
+                }
+                break;
+            }
+        }
+        this.classList.toggle('worn', this.item.worn);
+        const wishlistIcon = this.querySelector('.wishlist-icon');
+        wishlistIcon.classList.toggle('hidden', !this.item.wishlist);
     }
     
+    toggleOptions(toggle=null) {
+        const itemOptions = this.querySelector(".item-options");
+        const backdrop = document.getElementById('backdrop');
+        const optionsOpen = toggle != null ? toggle : itemOptions.classList.contains('hidden');
+
+        itemOptions.classList.toggle('hidden', !optionsOpen);
+        backdrop.classList.toggle('hidden', !optionsOpen);
+        itemOptions.classList.toggle('active', optionsOpen);
+        this.classList.toggle('active', optionsOpen);
+
+        if (optionsOpen) {
+            backdrop.addEventListener('click', () => {
+                this.toggleOptions(false);
+            }, {once: true})
+        }
+    }
+
     toggleEditing(toggle=null) {
-        const editOptions = this.querySelector("item-edit");
-        const editing = toggle != null ? toggle : editOptions.classList.contains('hidden');
-        editOptions.classList.toggle('hidden', !editing);
-        this.querySelector(".component-info").classList.toggle('hidden', editing);
+        const bottomSheet = new BottomSheet();
+        const itemEdit = new ItemEdit(this.item, this);
+        bottomSheet.addStep(itemEdit, "Edit Item");
+        this.appendChild(bottomSheet);
+        this.toggleOptions();
+        bottomSheet.openSheet();
+        
+        itemEdit.addEventListener('editing-submitted', () => {
+            this.updateInfo();
+            bottomSheet.closeSheet();
+            showItems();
+            saveData();
+        }, {once: true})
+
+        itemEdit.addEventListener('editing-canceled', () => {
+            bottomSheet.closeSheet()
+        }, {once: true})
     }
     
     scrollToFit() {
-        const details = this.querySelector('details')
-        if (details.open) {
+        const itemOptions = this.querySelector('.item-options')
+        if (itemOptions.classList.contains('active')) {
+            console.log("scrolling")
             setTimeout(() => {
                 this.scrollIntoView({
                     behavior: 'smooth', block: 'nearest', inline:'nearest'
@@ -712,7 +1036,7 @@ class OutfitFilter extends OutfitInput {
         this.starsSelect.multiple = true;
 
         // change checkboxes to tristate checkboxes
-        this.triStateAvailableCheckbox = document.createElement('tristate-checkbox');
+        this.triStateAvailableCheckbox = new TriStateCheckbox();
         this.availableCheckbox.replaceWith(this.triStateAvailableCheckbox);
 
         // unhide wishlist option

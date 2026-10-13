@@ -8,14 +8,18 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body data-page="outfits">
-    <div id="header">
-        <h2>Outfits</p>
-    </div>
+    <div id="backdrop" class="hidden"></div>
     <div id="page-content">
-        <outfit-filter></outfit-filter>
+        <h2>Outfits</h2>
+        <details class="filter">
+            <summary>Filter</summary>
+            <outfit-filter></outfit-filter>
+        </details>
         <div id="components-list"></div>
     </div>
-    <button id="add-button">+</button>
+    <button id="add-button">
+        <span id="add-icon"></span>
+    </button>
     <dialog id="add-dialog">
         <h2>Add Outfit</h2>
         <outfit-add></outfit-add>
