@@ -11,19 +11,27 @@
     <div id="backdrop" class="hidden"></div>
     <div id="page-content">
         <h2>Outfits</h2>
-        <details class="filter">
-            <summary>Filter</summary>
-            <outfit-filter></outfit-filter>
-        </details>
+        <filter-indicator class="hidden"></filter-indicator>
+        <div class="filter-sort-buttons">
+            <button id="filter-button">
+                <img src="icons/filter.svg" class="icon">
+                Filter
+            </button>
+            <div>
+                <button id="sort-button">
+                    Sort By
+                    <img src="icons/sort.svg" class="icon">
+                </button>
+                <sort-by params='Weather,Stars' class="sort hidden"></sort-by>
+            </div>
+        </div>
+        <outfit-filter class="filter hidden"></outfit-filter>
         <div id="components-list"></div>
     </div>
     <button id="add-button">
         <span id="add-icon"></span>
     </button>
-    <dialog id="add-dialog">
-        <h2>Add Outfit</h2>
-        <outfit-add></outfit-add>
-    </dialog>
+    <bottom-sheet></bottom-sheet>
     <nav-bar></nav-bar>
     <script src="app.js" onload="initOutfitsPage()"></script>
     <script>

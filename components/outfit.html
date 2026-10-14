@@ -1,16 +1,21 @@
-<link rel="stylesheet" href="../styles.css">
-<details class="component">
-  <summary class="outfit-items">Test Outfit</summary>
-  <div class="component-content">
-    <p class="component-info"></p>
-    <div class="edit-placeholder"></div>
-    <div>
-      <button 
-        class="edit-button">Edit</button>
-      <button
-        class="delete-button">Delete</button>
-      <button
-        class="filter-button">Filter Outfits</button>
-    </div>
+<div class="component">
+  <button class="component-button">
+    <div class="items"></div>
+    <span class="stars"></span>
+    <span class="weather"></span>
+  </button>
+  <div class="component-options hidden">
+    <button class="filter-button">
+      <img src="icons/filter.svg" class="icon">
+      Filter Items
+    </button>
+    <button class="edit-button">
+      <img src="icons/edit.svg" class="icon">
+      Edit
+    </button>
+    <button class="delete-button">
+      <img src="icons/delete.svg" class="icon">
+      Delete
+    </button>
   </div>
 </details>
