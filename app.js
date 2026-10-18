@@ -85,9 +85,10 @@ var items = []
 
 
 class Item {
-    constructor(name, type, wishlist=false, worn=false) {
+    constructor(name, type, image=null, wishlist=false, worn=false) {
         this.name = name;
         this.type = type;
+        this.image = image;
         this.wishlist = wishlist;
         this.worn = worn;
         this.outfits = []
@@ -170,7 +171,7 @@ function parseSavedData() {
 
 
 function loadData(parsedItems, parsedOutfits) {
-    items = parsedItems.map(item => new Item(item.name, item.type, item.wishlist, item.worn))
+    items = parsedItems.map(item => new Item(item.name, item.type, item.image, item.wishlist, item.worn))
     for (const outfit of parsedOutfits) {
         const outfitItems = outfit.items.map(item => getItemByName(item.name))
         new Outfit(outfitItems, outfit.weather, parseInt(outfit.stars, 10));
@@ -294,7 +295,8 @@ function showOutfits(focus=null) {
     }
     const stars = urlParams.getAll('stars');
     if (stars.length > 0) {
-        filteredOutfits = filteredOutfits.filter(outfit => stars.includes(outfit.stars))
+        const starsInt = stars.map(starsString => parseInt(starsString, 10));
+        filteredOutfits = filteredOutfits.filter(outfit => starsInt.includes(outfit.stars))
     }
     const available = urlParams.get('available');
     if (available != null) {
@@ -371,10 +373,6 @@ function initAddOutfitButton() {
             showOutfits(event.detail.id);
             bottomSheet.closeSheet();
         }, {once: true})
-
-        outfitAdd.addEventListener('add-canceled', () => {
-            bottomSheet.closeSheet();
-        }, {once: true})
         
         bottomSheet.openSheet()
     })
@@ -390,10 +388,6 @@ function initAddItemButton() {
 
         itemAdd.addEventListener('add-submitted', (event) => {
             showItems(event.detail.name);
-            bottomSheet.closeSheet();
-        }, {once: true})
-
-        itemAdd.addEventListener('add-canceled', () => {
             bottomSheet.closeSheet();
         }, {once: true})
 
@@ -439,10 +433,6 @@ function initSettingsPage() {
     uploadForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         const jsonFile = fileInput.files[0];
-        if (!jsonFile || jsonFile.type != "application/json") {
-            fileInput.setCustomValidity("Invalid file.")
-            return
-        }
         try {
             const jsonText = await jsonFile.text();
             const jsonData =  JSON.parse(jsonText);
@@ -583,6 +573,7 @@ class ItemInput extends HTMLElement {
     setup() {
         this.nameInput = this.querySelector('.name-input');
         this.typeSelect = this.querySelector('.type-select');
+        this.imageInput = this.querySelector('.image-input');
         this.wornCheckbox = this.querySelector('.worn-checkbox');
         this.wishlistCheckbox = this.querySelector('.wishlist-checkbox');
 
@@ -600,15 +591,9 @@ class ItemInput extends HTMLElement {
         this.submitButton.addEventListener("click", () => {
             this.handleSubmit()
         })
-
-        this.cancelButton = this.querySelector('.cancel-button');
-        this.cancelButton.addEventListener("click", () => {
-            this.handleCancel()
-        })
     }
 
     handleSubmit() {}
-    handleCancel() {}
 }
 
 
@@ -655,6 +640,7 @@ class ItemAdd extends ItemInput {
         const name = this.nameInput.value;
         const type = this.typeSelect.value;
         const wishlist = this.wishlistCheckbox.checked;
+        // const imageInput = this.imageInput.files[0];
 
         if (this.validateFields()) {
             const newItem = new Item(name, type, wishlist)
@@ -664,10 +650,6 @@ class ItemAdd extends ItemInput {
                 detail: newItem
             }));
         }
-    }
-
-    handleCancel() {
-        this.dispatchEvent(new CustomEvent('add-canceled', {}));
     }
 }
 customElements.define('item-add', ItemAdd);
@@ -695,10 +677,7 @@ class ItemEdit extends ItemInput {
         this.item.wishlist = this.wishlistCheckbox.checked;
 
         this.dispatchEvent(new CustomEvent('editing-submitted', {}));
-    }
 
-    handleCancel() {
-        this.dispatchEvent(new CustomEvent('editing-canceled', {}));
     }
 }
 customElements.define('item-edit', ItemEdit);
@@ -712,12 +691,16 @@ class ItemFilter extends ItemInput {
     setup() {
         super.setup()
 
-        // change Submit button to Filter, Cancel to Reset
+        // change Submit button to Filter, show Reset button
         const submitButton = this.querySelector('.submit-button');
         submitButton.textContent = "Filter";
-        const cancelButton = this.querySelector('.cancel-button');
-        cancelButton.type = "reset";
-        cancelButton.textContent = "Reset";
+        const resetButton = this.querySelector('.reset-button');
+        resetButton.classList.remove('hidden');
+        resetButton.addEventListener("click", () => {
+            setTimeout(() => {
+                this.updateFilterParams();
+            }, 1);
+        })
 
         // change name input to search
         this.nameInput.parentElement.firstChild.textContent = "Search"
@@ -791,13 +774,6 @@ class ItemFilter extends ItemInput {
     handleSubmit() {
         this.updateFilterParams();
     }
-
-    handleCancel() {
-        setTimeout(() => {
-            this.updateFilterParams();
-        }, 1);
-    }
-
 }
 customElements.define('item-filter', ItemFilter);
 
@@ -1103,10 +1079,6 @@ class ItemComponent extends ItemPill {
             saveData();
             showItems(this.item.name);
         }, {once: true})
-
-        itemEdit.addEventListener('editing-canceled', () => {
-            bottomSheet.closeSheet();
-        }, {once: true})
     }
     
     async scrollToFit(focus=false) {
@@ -1115,7 +1087,7 @@ class ItemComponent extends ItemPill {
         
         if (focus || componentOptions.classList.contains('active')) {
             this.scrollIntoView({
-                behavior: 'smooth', block: 'nearest', inline:'nearest'
+                behavior: 'smooth', block: 'end', inline:'nearest'
             });
         }
     }
@@ -1172,11 +1144,6 @@ class OutfitInput extends HTMLElement {
         const submitButton = this.querySelector('.submit-button');
         submitButton.addEventListener("click", () => {
             this.handleSubmit()
-        })
-
-        const cancelButton = this.querySelector('.cancel-button');
-        cancelButton.addEventListener("click", () => {
-            this.handleCancel()
         })
     }
 
@@ -1237,7 +1204,7 @@ class OutfitAdd extends OutfitInput {
     handleSubmit() {
         const selectedItems = this.currentItems;
         const weather = this.weatherSelect.value;
-        const stars = this.starsSelect.value;
+        const stars = parseInt(this.starsSelect.value, 10);
 
         if (this.validateFields()) {
             const newOutfit = new Outfit(selectedItems, weather, stars);
@@ -1246,10 +1213,6 @@ class OutfitAdd extends OutfitInput {
                 detail: newOutfit
             }));
         }
-    }
-
-    handleCancel() {
-        this.dispatchEvent(new CustomEvent('add-canceled', {}));
     }
 }
 customElements.define('outfit-add', OutfitAdd);
@@ -1299,10 +1262,6 @@ class OutfitEdit extends OutfitInput {
         }
         this.dispatchEvent(new CustomEvent('editing-submitted', {}));
     }
-
-    handleCancel() {
-        this.dispatchEvent(new CustomEvent('editing-canceled', {}));
-    }
 }
 customElements.define('outfit-edit', OutfitEdit);
 
@@ -1314,12 +1273,16 @@ class OutfitFilter extends OutfitInput {
 
     setup() {
         super.setup()
-        // change Submit button to say Filter, hide Cancel button
+        // change Submit button to say Filter, show Reset button
         const submitButton = this.querySelector('.submit-button');
         submitButton.textContent = "Filter";
-        const cancelButton = this.querySelector('.cancel-button');
-        cancelButton.type = "reset";
-        cancelButton.textContent = "Reset";
+        const resetButton = this.querySelector('.reset-button');
+        resetButton.classList.remove('hidden');
+        resetButton.addEventListener("click", () => {
+            setTimeout(() => {
+                this.updateFilterParams();
+            }, 1);
+        })
 
         // reveal search input
         this.searchInput = this.querySelector('.search-input');
@@ -1417,12 +1380,6 @@ class OutfitFilter extends OutfitInput {
 
     handleSubmit() {
         this.updateFilterParams();
-    }
-
-    handleCancel() {
-        setTimeout(() => {
-            this.updateFilterParams();
-        }, 1);
     }
 }
 customElements.define('outfit-filter', OutfitFilter);
@@ -1538,10 +1495,6 @@ class OutfitComponent extends HTMLElement {
             saveData();
             showOutfits(this.outfit.id);
         }, {once: true})
-
-        outfitEdit.addEventListener('editing-canceled', () => {
-            bottomSheet.closeSheet();
-        }, {once: true})
     }
     
     async scrollToFit(focus=false) {
@@ -1549,7 +1502,7 @@ class OutfitComponent extends HTMLElement {
         const componentOptions = this.querySelector('.component-options')
         if (focus || componentOptions.classList.contains('active')) {
             this.scrollIntoView({
-                behavior: 'smooth', block: 'nearest', inline:'nearest'
+                behavior: 'smooth', block: 'end', inline:'nearest'
             });
         }
     }
@@ -1641,9 +1594,6 @@ class ItemSelect extends HTMLElement {
                     bottomSheet.closeStep(step);
                     this.selectedItems.push(event.detail)
                     this.populateItems();
-                })
-                itemAdd.addEventListener('add-canceled', (event) => {
-                    bottomSheet.closeStep(step);
                 })
             });
         })
