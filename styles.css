@@ -7,14 +7,9 @@
   --radius: 10px;
 }
 
-.hidden {
-  display: none;
-}
-
 html, body {
   margin: 0;
   padding:0;
-  touch-action:none;
   overscroll-behavior:none;
   background-color: var(--primary-light);
 }
@@ -22,6 +17,10 @@ html, body {
 body {
   font-family: system-ui, sans-serif;
   font-size: 16px;
+}
+
+body:has(bottom-sheet.show) {
+  overflow:hidden;
 }
 
 h2 {
@@ -47,7 +46,12 @@ input[type="text"] {
 
 select {
   outline: none;
-  font-size: 16px;
+  font-size: 14px;
+  background-color: var(--primary-light);
+}
+
+select.stars-select {
+  color: var(--primary-dark)
 }
 
 button {
@@ -93,6 +97,10 @@ item-filter .input-form, outfit-filter .input-form {
   border-radius: var(--radius);
 }
 
+item-filter .input-form label, outfit-filter .input-form label{
+  padding: 10px;
+}
+
 .input-options {
   display:flex;
   flex-direction: column;
@@ -102,22 +110,23 @@ item-filter .input-form, outfit-filter .input-form {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px;
+  padding: 10px 20px;
   border-bottom: 2px solid var(--primary-light);
 }
 
-.input-options label.search-label {
-  display: none;
+.input-options label.items-label {
+  border: none;
+  padding: 10px 20px 0 20px;
 }
 
-.input-options label.search-label.show {
-  display: flex;
+.input-options label.hidden {
+  display:none;
 }
 
 .clear-button {
   display: none;
-  width: 30px;
-  height: 30px;
+  width: 20px;
+  height: 20px;
   mask-size: contain;
   mask-repeat: no-repeat;
   mask-position: center;
@@ -148,8 +157,8 @@ item-add .input-buttons button {
 }
 
 #sort-button img {
-  width: 20px;
-  height: 20px;
+  width: 12px;
+  height: 12px;
 }
 
 .filter-sort-buttons div {
@@ -216,13 +225,16 @@ item-add .input-buttons button {
 }
 
 #page-content {
-  flex: 1;
+  height: 100%;
   padding: 20px;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 20px;
   padding-bottom: 200px;
+}
+
+#page-content:has(bottom-sheet.show) {
+  overflow:hidden;
 }
 
 #backdrop {
@@ -260,9 +272,9 @@ item-add .input-buttons button {
   justify-content: center;
 }
 
-#add-icon {
-  width: 40px;
-  height: 40px;
+.add-icon {
+  width: 20px;
+  height: 20px;
   mask-size: contain;
   mask-repeat: no-repeat;
   mask-position: center;
@@ -270,6 +282,17 @@ item-add .input-buttons button {
   background-color: var(--primary-light); 
 }
 
+.add-item-button {
+  display: inline;
+  background-color: var(--primary-light);
+}
+
+.add-item-button .add-icon, .add-new-item-button .add-icon {
+  width: 12px;
+  height: 12px;
+  background-color: var(--primary-dark);
+  mask-image: url('icons/add-circle.svg');
+}
 .component {
   position: relative;
 }
@@ -290,28 +313,65 @@ item-component.active, outfit-component.active {
   box-shadow: 0 0 15px -5px rgba(0, 0, 0, 0.9);
 }
 
-item-component.worn button, outfit-component.worn button, item-pill.worn button {
+item-component.worn .component-button, outfit-component.worn .component-button, item-pill.worn button {
   filter: grayscale(80%);
   opacity: 0.5;
 }
 
-outfit-component .items {
-  display: flex;
-  flex-wrap: wrap;
-  width: 100%;
+.items {
+  display: block;
+  text-align: start;
 }
 
-item-pill .pill-button {
+.input-options .items {
+  padding: 10px 15px;
+  border-bottom: 2px solid var(--primary-light);
+}
+
+item-pill, .add-item-button, .add-new-item-button {
+  display: inline-block;
   margin: 4px 2px;
-  font-size: 12px;
+  font-size: 14px;
   color: color-mix(in srgb, var(--item-color-dark) 60%, black);
-  background-color: var(--item-color-light);
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: first baseline;
   gap: 10px;
   padding: 5px 10px;
   border-radius: 15px;
+}
+
+item-pill {
+  background-color: var(--item-color-light);
+}
+
+item-pill .item-icon {
+  background-color: var(--item-color-dark);
+  width: 10px;
+  height: 10px;
+}
+
+.check-button {
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-image: url('icons/circle.svg');
+}
+
+item-pill .clear-button, .check-button {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  margin: 0;
+  background-color: var(--item-color-dark);
+  display: block;
+}
+
+item-pill .clear-button.hidden, .check-button.hidden {
+  display: none;
+}
+
+.check-button.selected {
+  mask-image: url('icons/check-circle.svg');
 }
 
 .component-button {
@@ -328,6 +388,28 @@ item-pill .pill-button {
   width: 100%;
 }
 
+outfit-component .component-button {
+  display: inline-block;
+}
+
+.top-right {
+  float: right;
+  font-size: 14px;
+  display:flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--weather-color);
+  margin: 0 0 10px 10px;
+}
+
+.weather-icon {
+  --icon-src: url('icons/weather/hot.svg');
+  width: 20px;
+  height: 20px;
+  mask: var(--icon-src) center center / contain no-repeat;
+  background-color: var(--weather-color);
+}
+
 .item-icon {
   --icon-src: url('icons/items/top.svg');
   width: 25px;
@@ -336,22 +418,17 @@ item-pill .pill-button {
   background-color: var(--item-color-mid);
 }
 
-item-pill .item-icon {
-  background-color: var(--item-color-dark);
+.wishlist-icon, .outfit-wishlist-icon {
   width: 10px;
   height: 10px;
-}
-
-.wishlist-icon {
-  width: 10px;
-  height: 10px;
-  margin-left: auto;
   mask: url('icons/wishlist.svg') center center / contain no-repeat;
   background-color: var(--item-color-mid);
 }
 
-item-pill .wishlist-icon {
-  margin-left: 5px;
+.outfit-wishlist-icon {
+  width: 12px;
+  height: 12px;
+  background-color: var(--weather-color);
 }
 
 .component-options {
@@ -384,8 +461,8 @@ item-pill .wishlist-icon {
 }
 
 .icon {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
 }
 
 bottom-sheet {
@@ -417,7 +494,8 @@ bottom-sheet.show {
   justify-content: space-between;
   align-items: center;
   position: relative;
-  padding: 10px 20px;
+  padding: 5px 20px;
+  margin: 0;
 }
 
 .sheet-header button {
@@ -431,6 +509,15 @@ bottom-sheet.show {
 .sheet-header button.hidden {
   opacity: 0;
   pointer-events: none;
+}
+
+.sheet-step {
+  display: none;
+}
+
+.sheet-step.active {
+  display: block;
+  animation: fadeIn var(--transition-speed) ease forwards;
 }
 
 .filtered-by {
@@ -447,8 +534,46 @@ bottom-sheet.show {
 
 .filtered-by .clear-button {
   display:block;
-  width: 20px;
-  height: 20px;
   background-color: var(--primary-mid-dark);
   padding: 0;
+}
+
+
+bottom-sheet .sheet-body {
+  overflow-y: scroll;
+}
+
+item-select {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 0 15px 20px 15px;
+}
+
+.search-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+bottom-sheet button.back-button {
+  width: 15px;
+  height: 15px;
+  mask: url('icons/back.svg') center center / contain no-repeat;
+  background-color: black;
+  color: black;
+}
+
+
+bottom-sheet button.close-button {
+  width: 15px;
+  height: 15px;
+  mask: url('icons/close.svg') center center / contain no-repeat;
+  background-color: black;
+  color: black;
+}
+
+
+.hidden {
+  display: none;
 }

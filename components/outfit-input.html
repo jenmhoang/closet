@@ -1,14 +1,19 @@
 <form class='input-form' method="dialog">
     <div class="input-options">
-        <label class="search-label">
+        <label class="search-label hidden">
             Search
             <input type="text" placeholder=" " class="search-input">
-            <button type="reset" class="clear-button"></button>
+            <button class="clear-button"></button>
         </label>
-        <label for="items-select">
+        <label class="items-label">
             Items
-            <select class="items-select" multiple></select>
         </label>
+        <div class="items">
+            <button class="add-item-button">
+                Add Item
+                <span class="add-icon"></span>
+            </button>
+        </div>
         <label>
             Weather
             <select class="weather-select"></select>
@@ -28,6 +33,6 @@
     </div>
     <div class="input-buttons">
         <button type="button" class="cancel-button">Cancel</button>
-        <button type="submit" class="submit-button">Submit</button>
+        <button type="button" class="submit-button">Submit</button>
     </div>
 </form>

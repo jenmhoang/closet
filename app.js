@@ -25,7 +25,7 @@ const ITEM_COLORS = {
         "dark": "rgb(177, 62, 129)",
     },
     "white": {
-        "light": "rgb(238, 238, 238)",
+        "light": "rgb(245, 245, 245)",
         "mid": "rgb(221, 221, 221)",
         "dark": "rgb(58, 58, 58)"
     },
@@ -71,7 +71,14 @@ const ITEM_COLORS = {
     },
 }
 
-const STAR_UNICODE = '\u2605'
+WEATHER_COLORS = {
+    "cold": "#bdd8f2",
+    "neutral":  "#d4c0b4",
+    "warm": "#f7bf83",
+    "hot": "#f5a4a4"
+}
+
+const STAR_UNICODE = '\u2605' 
 
 var outfits = []
 var items = []
@@ -130,6 +137,21 @@ function getItemByName(name) {
     }
 }
 
+function getDefaultItemsSort(itemsList) {
+    return itemsList.toSorted((a, b) => {
+        return a.name.localeCompare(b.name);
+    }).toSorted((a, b) => {
+        return ITEM_TYPES[a.type] - ITEM_TYPES[b.type];
+    });
+}
+
+function getDefaultOutfitsSort(outfitsList) {
+    return outfitsList.toSorted((a, b) => {
+        return b.stars - a.stars;
+    }).toSorted((a, b) => {
+        return WEATHER[a.weather] - WEATHER[b.weather];
+    });
+}
 
 function saveData(i=items, o=outfits) {
     localStorage.setItem("items", JSON.stringify(i, null, 2))
@@ -162,11 +184,11 @@ async function getSavedData() {
 }
 
 
-function showItems() {
+function showItems(focus=null) {
     const componentsDiv = document.getElementById('components-list')
     componentsDiv.replaceChildren()
 
-    filteredItems = items;
+    filteredItems = getDefaultItemsSort(items);
 
     const urlParams = new URLSearchParams(window.location.search);
     const outfitId = urlParams.get('outfit');
@@ -206,7 +228,7 @@ function showItems() {
 
     const sortby = urlParams.get('sortby')
     if (sortby != null) {
-        filteredItems = [...filteredItems].sort((a, b) => {
+        filteredItems = filteredItems.toSorted((a, b) => {
             const aVal = a[sortby];
             const bVal = b[sortby];
 
@@ -221,18 +243,26 @@ function showItems() {
         })
     }
 
+    let focusComponent = null
     for (const item of filteredItems) {
-        componentsDiv.appendChild(new ItemComponent(item));
+        const component = new ItemComponent(item)
+        if (focus && focus == item.name) {
+            focusComponent = component;
+        }
+        componentsDiv.appendChild(component);
+    }
+
+    if (focusComponent) {
+        focusComponent.scrollToFit(true);
     }
 }
 
 
-
-function showOutfits(filter={}) {
+function showOutfits(focus=null) {
     const componentsDiv = document.getElementById('components-list')
     componentsDiv.replaceChildren()
     
-    filteredOutfits = outfits;
+    filteredOutfits = getDefaultOutfitsSort(outfits);
 
     const urlParams = new URLSearchParams(window.location.search);
     const itemName = urlParams.get('item');
@@ -277,23 +307,29 @@ function showOutfits(filter={}) {
 
     const sortby = urlParams.get('sortby')
     if (sortby != null) {
-        filteredOutfits = [...filteredOutfits].sort((a, b) => {
+        filteredOutfits = filteredOutfits.toSorted((a, b) => {
             const aVal = a[sortby];
             const bVal = b[sortby];
 
             if (sortby == 'weather') {
                 return WEATHER[aVal] - WEATHER[bVal];
             }
-        
-            if (typeof aVal === 'string' && typeof bVal === 'string') {
-                return aVal.localeCompare(bVal);
-            }       
-            return aVal - bVal;
+            
+            return bVal - aVal;
         })
     }
 
+    let focusComponent = null
     for (const outfit of filteredOutfits) {
-        componentsDiv.appendChild(new OutfitComponent(outfit));
+        const component = new OutfitComponent(outfit)
+        if (focus && focus == outfit.id) {
+            focusComponent = component;
+        }
+        componentsDiv.appendChild(component);
+    }
+
+    if (focusComponent) {
+        focusComponent.scrollToFit(true);
     }
 }
 
@@ -325,36 +361,42 @@ function populateDropdown(element, textContent, value=null, defaultValue=null) {
 
 function initAddOutfitButton() {
     const bottomSheet = document.querySelector('bottom-sheet');
-    const outfitAdd = new OutfitAdd();
-    bottomSheet.addStep(outfitAdd, "Add Outfit")
-
-    const closeEvents = ['add-submitted', 'add-canceled']
-    closeEvents.forEach(event => {
-        outfitAdd.addEventListener(event,  () => {
-            bottomSheet.closeSheet()
-        });
-    })
     
-    const outfitAddButton = document.getElementById('add-button');
-    outfitAddButton.addEventListener("click", () => {
+    const addOutfitButton = document.getElementById('add-button');
+    addOutfitButton.addEventListener("click", () => {
+        const outfitAdd = new OutfitAdd();
+        bottomSheet.addStep(outfitAdd, "Add Outfit")
+
+        outfitAdd.addEventListener('add-submitted', (event) => {
+            showOutfits(event.detail.id);
+            bottomSheet.closeSheet();
+        }, {once: true})
+
+        outfitAdd.addEventListener('add-canceled', () => {
+            bottomSheet.closeSheet();
+        }, {once: true})
+        
         bottomSheet.openSheet()
     })
 }
 
 function initAddItemButton() {
     const bottomSheet = document.querySelector('bottom-sheet');
-    const itemAdd = new ItemAdd();
-    bottomSheet.addStep(itemAdd, "Add Item")
-
-    const closeEvents = ['add-submitted', 'add-canceled']
-    closeEvents.forEach(event => {
-        itemAdd.addEventListener(event,  () => {
-            bottomSheet.closeSheet()
-        });
-    })
     
     const addItemButton = document.getElementById('add-button');
     addItemButton.addEventListener("click", () => {
+        const itemAdd = new ItemAdd();
+        bottomSheet.addStep(itemAdd, "Add Item")
+
+        itemAdd.addEventListener('add-submitted', (event) => {
+            showItems(event.detail.name);
+            bottomSheet.closeSheet();
+        }, {once: true})
+
+        itemAdd.addEventListener('add-canceled', () => {
+            bottomSheet.closeSheet();
+        }, {once: true})
+
         bottomSheet.openSheet()
     })
 }
@@ -544,17 +586,23 @@ class ItemInput extends HTMLElement {
         this.wornCheckbox = this.querySelector('.worn-checkbox');
         this.wishlistCheckbox = this.querySelector('.wishlist-checkbox');
 
+        // set up name input clear button
+        this.nameClearButton = this.querySelector('.clear-button');
+        this.nameClearButton.addEventListener("click", () => {
+            this.nameInput.value = '';
+        })
+
         // populate dropdowns and add events submission
         populateDropdown(this.typeSelect, Object.keys(ITEM_TYPES));
         this.typeSelect.selectedIndex = -1;
 
-        const submitButton = this.querySelector('.submit-button');
-        submitButton.addEventListener("click", () => {
+        this.submitButton = this.querySelector('.submit-button');
+        this.submitButton.addEventListener("click", () => {
             this.handleSubmit()
         })
 
-        const cancelButton = this.querySelector('.cancel-button');
-        cancelButton.addEventListener("click", () => {
+        this.cancelButton = this.querySelector('.cancel-button');
+        this.cancelButton.addEventListener("click", () => {
             this.handleCancel()
         })
     }
@@ -565,16 +613,22 @@ class ItemInput extends HTMLElement {
 
 
 class ItemAdd extends ItemInput {
-    constructor() {
+    constructor(defaultName="") {
         super();
+        this.defaultName = defaultName;
     }
 
-    handleSubmit() {
+    setup() {
+        super.setup();
+        if (this.defaultName) {
+            this.nameInput.value = this.defaultName;
+        }
+    }
+
+    validateFields() {
         const name = this.nameInput.value;
         const type = this.typeSelect.value;
-        const wishlist = this.wishlistCheckbox.checked;
 
-        // add item to list
         let nameValidity = ""
         if (!name) {
             nameValidity = "Invalid field"
@@ -587,20 +641,29 @@ class ItemAdd extends ItemInput {
         this.typeSelect.setCustomValidity(typeValidity)
 
         if (nameValidity || typeValidity) {
-            return
+            const form = this.querySelector("form");
+            if (form.reportValidity()) {
+                form.reset();
+            }
+            return false;
         } else {
-            items.push(new Item(name, type, wishlist))
+            return true;
         }
+    }
 
-        saveData()
-        showItems()
-            
-        const form = this.querySelector("form");
-        if (form.checkValidity()) {
-            form.reset();
+    handleSubmit() {
+        const name = this.nameInput.value;
+        const type = this.typeSelect.value;
+        const wishlist = this.wishlistCheckbox.checked;
+
+        if (this.validateFields()) {
+            const newItem = new Item(name, type, wishlist)
+            items.push(newItem);
+            saveData();
+            this.dispatchEvent(new CustomEvent('add-submitted', {
+                detail: newItem
+            }));
         }
-        
-        this.dispatchEvent(new CustomEvent('add-submitted', {}));
     }
 
     handleCancel() {
@@ -816,14 +879,19 @@ class BottomSheet extends HTMLElement {
                 this.closeSheet();
             });
         })
-        this._resolveConnected();
 
-        // const backButton = bottomSheet.querySelector('.back-button');
-        // backButton.addEventListener('click', () => {
-        //     if (activeStep > 1) {
-        //         goToStep(activeStep - 1);
-        //     }
-        // });
+        const backButton = this.querySelector('.back-button');
+        backButton.addEventListener('click', () => {
+            const sheetBody = this.querySelector('.sheet-body');
+            const activeStep = sheetBody.querySelector('.active');
+            const currentStep = activeStep.dataset.step;
+            sheetBody.removeChild(activeStep);
+            if (currentStep > 1) {
+                this.goToStep(currentStep - 1);
+            }
+        });
+
+        this._resolveConnected();
     }
 
     async addStep(element, stepTitle) {
@@ -839,6 +907,17 @@ class BottomSheet extends HTMLElement {
         sheetStep.appendChild(element);
         const sheetBody = this.querySelector('.sheet-body');
         sheetBody.appendChild(sheetStep);
+
+        return currStep;
+    }
+
+    closeStep(stepNumber) {
+        if (stepNumber > 1) {
+            this.goToStep(stepNumber - 1);
+        }
+        const sheetBody = this.querySelector('.sheet-body');
+        const targetStep = this.querySelector(`.sheet-step[data-step="${stepNumber}"]`);
+        sheetBody.removeChild(targetStep);
     }
 
     async openSheet() {
@@ -852,6 +931,9 @@ class BottomSheet extends HTMLElement {
     closeSheet() {
         this.classList.remove('show');
         document.getElementById('backdrop').classList.toggle('hidden', true);
+        
+        const sheetBody = this.querySelector('.sheet-body');
+        sheetBody.replaceChildren();
     }
 
     goToStep(stepNumber) {
@@ -861,24 +943,79 @@ class BottomSheet extends HTMLElement {
 
         steps.forEach(step => step.classList.remove('active'));
         targetStep.classList.add('active');
-        let activeStep = stepNumber;
 
         const headerTitle = this.querySelector('.header-title');
         headerTitle.textContent = targetStep.getAttribute('data-title');
         
-        // if (activeStep > 1 && activeStep < steps.length) {
-        //     backButton.classList.remove('hidden');
-        // } else {
-        //     backButton.classList.add('hidden'); // Hide on Step 1 or Final completion screen
-        // }
+        const backButton = this.querySelector('.back-button');
+        if (stepNumber > 1) {
+            backButton.classList.remove('hidden');
+        } else {
+            backButton.classList.add('hidden');
+        }
     }
 }
 customElements.define('bottom-sheet', BottomSheet);
 
-class ItemComponent extends HTMLElement {
-    constructor(item) {
-        super();
+
+class ItemPill extends HTMLElement {
+    constructor(item, edit=false, select=false) {
+        super(item);
         this.item = item;
+        this.edit = edit;
+        this.select = select;
+        this._isConnectedPromise = new Promise((resolve) => {
+            this._resolveConnected = resolve;
+        });
+    }
+
+    connectedCallback() {
+        this.innerHTML = `
+                <span class="item-icon"></span>
+                <span class="item-name">Test Item</span>
+                <span class="wishlist-icon"></span>
+                <span class="check-button${this.select ? "" : " hidden"}"></span>
+                <button class="${this.edit ? "" : "hidden "}clear-button"></button>
+        `
+        this.updateInfo();
+        this._resolveConnected();
+    }
+
+    async toggleSelected() {
+        await this._isConnectedPromise;
+        const checkIcon = this.querySelector('.check-button');
+        checkIcon.classList.toggle("selected");
+        this.classList.toggle("selected");
+    }
+
+    updateInfo() {
+        this.querySelector('.item-name').textContent = this.item.name;
+        const typeIcon = this.querySelector('.item-icon');
+        typeIcon.style.setProperty('--icon-src', `url('icons/items/${this.item.type}.svg')`)
+        
+        for (const [color, colorValues] of Object.entries(ITEM_COLORS)) {
+            if (this.item.name.includes(color)) {
+                this.style.setProperty('--item-color-light', colorValues['light'])
+                this.style.setProperty('--item-color-mid', colorValues['mid'])
+                this.style.setProperty('--item-color-dark', colorValues['dark'])
+                break;
+            }
+        }
+
+        this.classList.toggle('worn', this.item.worn);
+        const wishlistIcon = this.querySelector('.wishlist-icon');
+        wishlistIcon.classList.toggle('hidden', !this.item.wishlist);
+    }
+}
+customElements.define('item-pill', ItemPill);
+
+
+class ItemComponent extends ItemPill {
+    constructor(item) {
+        super(item);
+        this._isConnectedPromise = new Promise((resolve) => {
+            this._resolveConnected = resolve;
+        });
     }
 
     async connectedCallback() {
@@ -917,28 +1054,16 @@ class ItemComponent extends HTMLElement {
         const deleteButton = this.querySelector(".delete-button");
         deleteButton.addEventListener("click", () => {
             this.toggleOptions(false);
-            items = items.filter(currItem => currItem !== this.item)
+            for (const outfitIndex of this.item.outfits) {
+                const outfit = outfits[outfitIndex];
+                outfit.items.splice(outfit.items.indexOf(this.item), 1);
+            }
+            items.splice(items.indexOf(this.item), 1);
             saveData()
             showItems()
         })
-    }
-
-    updateInfo() {
-        this.querySelector('.item-name').textContent = this.item.name;
-        const typeIcon = this.querySelector('.item-icon');
-        typeIcon.style.setProperty('--icon-src', `url('icons/items/${this.item.type}.svg')`)
         
-        for (const [color, colorValues] of Object.entries(ITEM_COLORS)) {
-            if (this.item.name.includes(color)) {
-                this.style.setProperty('--item-color-light', colorValues['light'])
-                this.style.setProperty('--item-color-mid', colorValues['mid'])
-                this.style.setProperty('--item-color-dark', colorValues['dark'])
-                break;
-            }
-        }
-        this.classList.toggle('worn', this.item.worn);
-        const wishlistIcon = this.querySelector('.wishlist-icon');
-        wishlistIcon.classList.toggle('hidden', !this.item.wishlist);
+        this._resolveConnected();
     }
 
     filterOutfits() {
@@ -965,63 +1090,43 @@ class ItemComponent extends HTMLElement {
     }
 
     toggleEditing() {
-        const bottomSheet = new BottomSheet();
+        const bottomSheet = document.querySelector('bottom-sheet');
         const itemEdit = new ItemEdit(this.item, this);
         bottomSheet.addStep(itemEdit, "Edit Item");
-        this.appendChild(bottomSheet);
-        this.toggleOptions();
+
+        this.toggleOptions(false);
         bottomSheet.openSheet();
         
         itemEdit.addEventListener('editing-submitted', () => {
-            this.updateInfo();
             bottomSheet.closeSheet();
+            this.updateInfo();
             saveData();
+            showItems(this.item.name);
         }, {once: true})
 
         itemEdit.addEventListener('editing-canceled', () => {
-            bottomSheet.closeSheet()
+            bottomSheet.closeSheet();
         }, {once: true})
     }
     
-    scrollToFit() {
+    async scrollToFit(focus=false) {
+        await this._isConnectedPromise;
         const componentOptions = this.querySelector('.component-options')
-        if (componentOptions.classList.contains('active')) {
-            setTimeout(() => {
-                this.scrollIntoView({
-                    behavior: 'smooth', block: 'nearest', inline:'nearest'
-                });
-            }, 50);
+        
+        if (focus || componentOptions.classList.contains('active')) {
+            this.scrollIntoView({
+                behavior: 'smooth', block: 'nearest', inline:'nearest'
+            });
         }
     }
 }
 customElements.define('item-component', ItemComponent);
 
 
-class ItemPill extends ItemComponent {
-    constructor(item) {
-        super(item);
-        this.innerHTML = `
-            <div class="pill-button">
-                <span class="item-icon"></span>
-                <span class="item-name">Test Item</span>
-                <span class="wishlist-icon"></span>
-            </div>
-        `
-        this.setup();
-    }
-
-    async connectedCallback() {}
-
-    setup() {
-        this.updateInfo();
-    }
-}
-customElements.define('item-pill', ItemPill);
-
-
 class OutfitInput extends HTMLElement {
     constructor() {
         super();
+        this.currentItems = []
     }
 
     async connectedCallback() {
@@ -1038,15 +1143,25 @@ class OutfitInput extends HTMLElement {
     }
 
     setup() {
-        this.itemsSelect = this.querySelector('.items-select');
         this.weatherSelect = this.querySelector('.weather-select');
         this.starsSelect = this.querySelector('.stars-select');
         this.availableCheckbox = this.querySelector('.available-checkbox');
         this.wishlistCheckbox = this.querySelector('.wishlist-checkbox');
 
         // populate dropdowns and add events submission
-        populateDropdown(this.itemsSelect, items.map(item => item.name));
-        this.itemsSelect.value = -1;
+        const bottomSheet = document.querySelector('bottom-sheet');
+        const addItemButton = this.querySelector('.add-item-button');
+        addItemButton.addEventListener("click", () => {
+            const itemSelect = new ItemSelect(this.currentItems);
+            bottomSheet.addStep(itemSelect, "Add Items to Outfit").then((step) => {
+                bottomSheet.goToStep(step);
+            })
+            itemSelect.addEventListener('items-selected', (event) => {
+                this.currentItems = event.detail;
+                this.populateItems();
+            })
+        })
+
         populateDropdown(this.weatherSelect, Object.keys(WEATHER));
         this.weatherSelect.value = -1;
         const starsValueList = [...Array(5).keys()].map(n => n + 1);
@@ -1064,6 +1179,24 @@ class OutfitInput extends HTMLElement {
             this.handleCancel()
         })
     }
+
+    populateItems() {
+        this.currentItems = getDefaultItemsSort(this.currentItems);
+        const itemsDiv = this.querySelector('.items');
+        const addItemButton = this.querySelector('.add-item-button');
+        itemsDiv.replaceChildren(addItemButton);
+        for (const item of this.currentItems) {
+            const itemPill = new ItemPill(item, true);
+            addItemButton.before(itemPill);
+
+            const removeItemButton = itemPill.querySelector('.clear-button');
+            removeItemButton.classList.add(item.name.replaceAll(" ",""))
+            removeItemButton.addEventListener("click", () => {
+                this.currentItems.splice(this.currentItems.indexOf(item), 1);
+                itemPill.remove();
+            })
+        }
+    }
 }
 
 
@@ -1077,33 +1210,46 @@ class OutfitAdd extends OutfitInput {
         this.availableCheckbox.parentElement.classList.add('hidden');
     }
 
-    handleSubmit() {
-        const selectedItemNames = Array.from(this.itemsSelect.selectedOptions).
-                                    map(option => option.value);
-        const selectedItems = selectedItemNames.map(itemName => getItemByName(itemName));
+    validateFields() {
+        // const selectedItems = this.currentItems;
         const weather = this.weatherSelect.value;
         const stars = this.starsSelect.value;
         
-        const itemsValidity = selectedItems ? "" : "Select at least one item."
-        this.itemsSelect.setCustomValidity(itemsValidity);
+        // const itemsValidity = selectedItems ? "" : "Select at least one item."
+        // const itemsLabel = this.querySelector('.items-label');
+        // itemsLabel.setCustomValidity(itemsValidity);
         const weatherValidity = weather ? "" : "Select weather."
         this.weatherSelect.setCustomValidity(weatherValidity);
         const starsValidity = stars ? "" : "Select stars.";
         this.starsSelect.setCustomValidity(starsValidity);
 
-        if (itemsValidity || weatherValidity || starsValidity) {
-            return
+        if (weatherValidity || starsValidity) {
+            const form = this.querySelector("form");
+            if (form.reportValidity()) {
+                form.reset();
+            }
+            return false;
         } else {
-            new Outfit(selectedItems, weather, stars);
+            return true;
         }
+    }
 
-        saveData()
-        showOutfits()
-            
-        const form = this.querySelector("form");
-        if (form.checkValidity()) {
-            form.reset();
+    handleSubmit() {
+        const selectedItems = this.currentItems;
+        const weather = this.weatherSelect.value;
+        const stars = this.starsSelect.value;
+
+        if (this.validateFields()) {
+            const newOutfit = new Outfit(selectedItems, weather, stars);
+            saveData();
+            this.dispatchEvent(new CustomEvent('add-submitted', {
+                detail: newOutfit
+            }));
         }
+    }
+
+    handleCancel() {
+        this.dispatchEvent(new CustomEvent('add-canceled', {}));
     }
 }
 customElements.define('outfit-add', OutfitAdd);
@@ -1114,12 +1260,23 @@ class OutfitEdit extends OutfitInput {
         super();
         this.outfit = outfit;
         this.outfitComponent = outfitComponent;
+        this.currentItems = getDefaultItemsSort(this.outfit.items);
     }
 
     setup() {
         super.setup()
-        console.log(this.outfit)
-        populateDropdown(this.itemsSelect, items.map(item => item.name), null, this.outfit.items.map(item => item.name))
+        const addItemButton = this.querySelector('.add-item-button');
+        for (const item of this.currentItems) {
+            const itemPill = new ItemPill(item, true);
+            addItemButton.before(itemPill);
+            const removeItemButton = itemPill.querySelector('.clear-button');
+            removeItemButton.classList.add(item.name.replaceAll(" ",""))
+            removeItemButton.addEventListener("click", () => {
+                this.currentItems.splice(this.currentItems.indexOf(item), 1);
+                itemPill.remove();
+            })
+        }
+        
         populateDropdown(this.weatherSelect, Object.keys(WEATHER), null, this.outfit.weather)
         const starsValueList = [...Array(5).keys()].map(n => n + 1)
         const starSymbolsList = starsValueList.map(num => Array(num+1).join(STAR_UNICODE))
@@ -1127,10 +1284,8 @@ class OutfitEdit extends OutfitInput {
         this.availableCheckbox.checked = this.outfit.isAvailable()
     }
 
-    handleSubmit() {
-        const selectedItemNames = Array.from(this.itemsSelect.selectedOptions).
-                                    map(option => option.value);
-        this.outfit.items = selectedItemNames.map(itemName => getItemByName(itemName));
+    async handleSubmit() {
+        this.outfit.items = this.currentItems;
         this.outfit.weather = this.weatherSelect.value;
         this.outfit.stars = parseInt(this.starsSelect.value, 10);
 
@@ -1168,7 +1323,17 @@ class OutfitFilter extends OutfitInput {
 
         // reveal search input
         this.searchInput = this.querySelector('.search-input');
-        this.searchInput.parentElement.classList.add('show');
+        this.searchInput.parentElement.classList.remove('hidden');
+        this.searchClearButton = this.querySelector('.clear-button');
+        this.searchClearButton.addEventListener("click", () => {
+            this.searchInput.value = '';
+        })
+
+        // remove items dropdown
+        const itemsDiv = this.querySelector('.items');
+        itemsDiv.classList.add('hidden');
+        const itemsLabel = this.querySelector('.items-label');
+        itemsLabel.classList.add('hidden');
 
         // make dropdowns multi select
         this.weatherSelect.multiple = true;
@@ -1267,6 +1432,9 @@ class OutfitComponent extends HTMLElement {
     constructor(outfit) {
         super();
         this.outfit = outfit;
+        this._isConnectedPromise = new Promise((resolve) => {
+            this._resolveConnected = resolve;
+        });
     }
 
     async connectedCallback() {
@@ -1304,21 +1472,33 @@ class OutfitComponent extends HTMLElement {
 
         const deleteButton = this.querySelector(".delete-button");
         deleteButton.addEventListener("click", () => {
-            outfits = outfits.filter(currOutfit => currOutfit != this.outfit);
+            this.toggleOptions(false);
+            for (const item of this.outfit.items) {
+                item.outfits.splice(item.outfits.indexOf(this.outfit.id), 1);
+            }
+            outfits.splice(outfits.indexOf(this.outfit), 1)
             saveData();
             showOutfits();
         })
+        this._resolveConnected();
     }
 
     updateInfo() {
         const itemsDiv = this.querySelector('.items');
-        const sortedItems = [...this.outfit.items].sort((a, b) => {
-            return ITEM_TYPES[a.type] - ITEM_TYPES[b.type];
-        })
+        itemsDiv.replaceChildren();
+        const sortedItems = getDefaultItemsSort(this.outfit.items);
         for (const item of sortedItems) {
             const itemPill = new ItemPill(item);
             itemsDiv.appendChild(itemPill);
         }
+        this.style.setProperty('--weather-color', WEATHER_COLORS[this.outfit.weather]);
+        const starsElement = this.querySelector('.stars');
+        starsElement.textContent = Array(this.outfit.stars + 1).join(STAR_UNICODE);
+        const weatherIcon = this.querySelector('.weather-icon');
+        weatherIcon.style.setProperty('--icon-src', `url('icons/weather/${this.outfit.weather}.svg')`)
+        const wishlistIcon = this.querySelector('.outfit-wishlist-icon');
+        wishlistIcon.classList.toggle('hidden', !this.outfit.isWishlist());
+        this.classList.toggle('worn', !this.outfit.isAvailable());
     }
 
     filterItems() {
@@ -1353,24 +1533,24 @@ class OutfitComponent extends HTMLElement {
         bottomSheet.openSheet();
         
         outfitEdit.addEventListener('editing-submitted', () => {
-            this.updateInfo();
             bottomSheet.closeSheet();
+            this.updateInfo();
             saveData();
+            showOutfits(this.outfit.id);
         }, {once: true})
 
         outfitEdit.addEventListener('editing-canceled', () => {
-            bottomSheet.closeSheet()
+            bottomSheet.closeSheet();
         }, {once: true})
     }
     
-    scrollToFit() {
+    async scrollToFit(focus=false) {
+        await this._isConnectedPromise;
         const componentOptions = this.querySelector('.component-options')
-        if (componentOptions.classList.contains('active')) {
-            setTimeout(() => {
-                this.scrollIntoView({
-                    behavior: 'smooth', block: 'nearest', inline:'nearest'
-                });
-            }, 50);
+        if (focus || componentOptions.classList.contains('active')) {
+            this.scrollIntoView({
+                behavior: 'smooth', block: 'nearest', inline:'nearest'
+            });
         }
     }
 }
@@ -1414,3 +1594,117 @@ class FilterIndicator extends HTMLElement {
     }
 }
 customElements.define('filter-indicator', FilterIndicator);
+
+
+class ItemSelect extends HTMLElement {
+    constructor(selectedItems = []) {
+        super();
+        this.innerHTML = `
+            <form>
+                <label class="search-label">
+                    Search
+                    <input type="text" placeholder=" " class="search-input">
+                    <button type="reset" class="clear-button"></button>
+                </label>
+            </form>
+            <div class="items">
+                <button class="add-new-item-button hidden">
+                    <span class="add-text"></span>
+                    <span class="add-icon"></span>
+                </button>
+            </div>
+        `
+        this.itemsDiv = this.querySelector('.items');
+        this.addItemButton = this.querySelector('.add-new-item-button');
+        this.selectedItems = selectedItems;
+        this.setup();
+    }
+
+    setup() {
+        this.populateItems();
+
+        const searchInput = this.querySelector('.search-input');
+        searchInput.addEventListener('input', () => {
+            this.populateItems(searchInput.value);
+        })
+        const clearButton = this.querySelector('.clear-button');
+        clearButton.addEventListener('click', () => {
+            this.populateItems();
+        })
+
+        this.addItemButton.addEventListener('click', () => {
+            const bottomSheet = document.querySelector('bottom-sheet');
+            const itemAdd = new ItemAdd(searchInput.value);
+            bottomSheet.addStep(itemAdd, "Add Item").then((step) => {
+                bottomSheet.goToStep(step);
+                itemAdd.addEventListener('add-submitted', (event) => {
+                    bottomSheet.closeStep(step);
+                    this.selectedItems.push(event.detail)
+                    this.populateItems();
+                })
+                itemAdd.addEventListener('add-canceled', (event) => {
+                    bottomSheet.closeStep(step);
+                })
+            });
+        })
+
+        this.itemsDiv.addEventListener('click', (event) => {
+            const itemPill = event.target.closest('item-pill');
+            if (itemPill) {
+                if (itemPill.classList.contains('selected')) {
+                    itemPill.toggleSelected();
+                    const index = this.selectedItems.indexOf(itemPill.item);
+                    this.selectedItems.splice(index, 1);
+                } else {
+                    itemPill.toggleSelected();
+                    this.selectedItems.push(itemPill.item);
+                }
+            }
+        })
+    }
+
+    async populateItems(search=null) {
+        this.addItemButton.classList.add('hidden');
+        this.itemsDiv.replaceChildren(this.addItemButton);
+
+        let filteredItems = getDefaultItemsSort(items).
+            filter(item => !this.selectedItems.includes(item));
+        filteredItems = [...getDefaultItemsSort(this.selectedItems), ...filteredItems];
+        
+        if (search) {
+            this.addItemButton.classList.remove('hidden');
+            const addItemText = this.addItemButton.querySelector('.add-text');
+            addItemText.textContent = `New: ${search}`
+
+            let searchWords = [];
+            if (search.includes('"')) {
+                const regex =/"([^"]*)"/g;
+                searchWords = Array.from(search.matchAll(regex), m => m[1]);
+                search = search.replaceAll('"', '')
+                for (const searchWord of searchWords) {
+                    search = search.replace(searchWord, '');
+                }
+            }
+            if (search) searchWords = searchWords.concat(search.trim().split(" "));
+            filteredItems = items.filter(item => {
+                return searchWords.some(word => item.name.includes(word));
+            })
+        }
+
+        for (const item of filteredItems) {
+            const itemPill = new ItemPill(item, false, true);
+            if (this.selectedItems.includes(item)) {
+                itemPill.toggleSelected();
+            }
+            this.addItemButton.before(itemPill);
+        }
+    }
+
+    disconnectedCallback() {
+        const itemSelectedEvent = new CustomEvent('items-selected', {
+            detail: this.selectedItems
+        });
+        this.dispatchEvent(itemSelectedEvent);
+    }
+}
+customElements.define('item-select', ItemSelect);
