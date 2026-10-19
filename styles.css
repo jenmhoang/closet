@@ -54,7 +54,7 @@ select.stars-select {
   color: var(--primary-dark)
 }
 
-button {
+button, .add-image-button {
   background-color: var(--primary-mid);
   color: black;
   font-size: 16px;
@@ -114,6 +114,11 @@ item-filter .input-form label, outfit-filter .input-form label{
   border-bottom: 2px solid var(--primary-light);
 }
 
+.input-options label.add-image-button {
+  padding: 5px 15px;
+  border: none;
+}
+
 .input-options label.items-label {
   border: none;
   padding: 10px 20px 0 20px;
@@ -123,7 +128,7 @@ item-filter .input-form label, outfit-filter .input-form label{
   display:none;
 }
 
-.clear-button, .clear-file-button {
+.clear-button {
   display: none;
   margin-left: auto;
   width: 20px;
@@ -137,7 +142,6 @@ item-filter .input-form label, outfit-filter .input-form label{
 
 input.name-input:not(:placeholder-shown) + .clear-button,
 input.search-input:not(:placeholder-shown) + .clear-button
-.clear-file-button
 {
   display: block;
 }
@@ -446,6 +450,11 @@ outfit-component .component-button {
   border-radius: var(--radius);
   margin-left: auto;
   display:none;
+}
+
+item-component .image {
+  height: 35px;
+  width: 35px;
 }
 
 .sheet-step .image {

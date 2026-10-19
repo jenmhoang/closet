@@ -657,6 +657,7 @@ class ItemAdd extends ItemInput {
     constructor(defaultName="") {
         super();
         this.defaultName = defaultName;
+        this.currentPhoto = null;
     }
 
     setup() {
@@ -664,6 +665,27 @@ class ItemAdd extends ItemInput {
         if (this.defaultName) {
             this.nameInput.value = this.defaultName;
         }
+
+        const removeImageButton = this.querySelector('.clear-file-button');
+        const addImageButton = this.querySelector('.add-image-button');
+        const addImageLabel = addImageButton.querySelector('span');
+        function toggleImageOptions(hasImage) {
+            removeImageButton.classList.toggle('hidden', !hasImage);
+            addImageLabel.textContent = hasImage ? "Change Image" : "Upload Image"
+        }
+
+        addImageButton.addEventListener('change', (event) => {
+            if (event.target.files.length > 0) {
+                toggleImageOptions(true);
+                this.currentPhoto = this.imageInput.files[0];
+            }
+        })
+
+        removeImageButton.addEventListener('click', () => {
+            this.imageInput.value = '';
+            toggleImageOptions(false);
+            this.currentPhoto = null;
+        });
     }
 
     validateFields() {
@@ -695,7 +717,7 @@ class ItemAdd extends ItemInput {
     handleSubmit() {
         const name = this.nameInput.value;
         const type = this.typeSelect.value;
-        const imageInput = this.imageInput.files[0];
+        const imageInput = this.currentPhoto;
         const wishlist = this.wishlistCheckbox.checked;
 
         if (this.validateFields()) {
@@ -716,6 +738,7 @@ class ItemEdit extends ItemInput {
         super();
         this.item = item;
         this.itemComponent = itemComponent;
+        this.currentPhoto = this.item.image;
     }
 
     setup() {
@@ -724,12 +747,34 @@ class ItemEdit extends ItemInput {
         this.typeSelect.value = this.item.type;
         this.wornCheckbox.checked = this.item.worn;
         this.wishlistCheckbox.checked = this.item.wishlist;
+        
+        const removeImageButton = this.querySelector('.clear-file-button');
+        const addImageButton = this.querySelector('.add-image-button');
+        const addImageLabel = addImageButton.querySelector('span');
+        function toggleImageOptions(hasImage) {
+            removeImageButton.classList.toggle('hidden', !hasImage);
+            addImageLabel.textContent = hasImage ? "Change Image" : "Upload Image"
+        }
+        toggleImageOptions(this.item.image != null);
+
+        addImageButton.addEventListener('change', (event) => {
+            if (event.target.files.length > 0) {
+                toggleImageOptions(true);
+                this.currentPhoto = this.imageInput.files[0];
+            }
+        })
+
+        removeImageButton.addEventListener('click', () => {
+            this.imageInput.value = '';
+            toggleImageOptions(false);
+            this.currentPhoto = null;
+        });
     }
 
     handleSubmit() {
         this.item.name = this.nameInput.value;
         this.item.type = this.typeSelect.value;
-        this.item.image = this.imageInput.files[0];
+        this.item.image = this.currentPhoto;
         this.item.worn = this.wornCheckbox.checked;
         this.item.wishlist = this.wishlistCheckbox.checked;
 
@@ -1251,11 +1296,33 @@ class OutfitInput extends HTMLElement {
 class OutfitAdd extends OutfitInput {
     constructor() {
         super();
+        this.currentImage = null;
     }
 
     setup() {
         super.setup();
         this.availableCheckbox.parentElement.classList.add('hidden');
+        
+        const removeImageButton = this.querySelector('.clear-file-button');
+        const addImageButton = this.querySelector('.add-image-button');
+        const addImageLabel = addImageButton.querySelector('span');
+        function toggleImageOptions(hasImage) {
+            removeImageButton.classList.toggle('hidden', !hasImage);
+            addImageLabel.textContent = hasImage ? "Change Image" : "Upload Image"
+        }
+
+        addImageButton.addEventListener('change', (event) => {
+            if (event.target.files.length > 0) {
+                toggleImageOptions(true);
+                this.currentPhoto = this.imageInput.files[0];
+            }
+        })
+
+        removeImageButton.addEventListener('click', () => {
+            this.imageInput.value = '';
+            toggleImageOptions(false);
+            this.currentPhoto = null;
+        });
     }
 
     validateFields() {
@@ -1284,7 +1351,7 @@ class OutfitAdd extends OutfitInput {
 
     handleSubmit() {
         const selectedItems = this.currentItems;
-        const imageInput = this.imageInput.files[0];
+        const imageInput = this.currentImage;
         const weather = this.weatherSelect.value;
         const stars = parseInt(this.starsSelect.value, 10);
 
@@ -1307,6 +1374,7 @@ class OutfitEdit extends OutfitInput {
         this.outfit = outfit;
         this.outfitComponent = outfitComponent;
         this.currentItems = getDefaultItemsSort(this.outfit.items);
+        this.currentPhoto = this.outfit.image;
     }
 
     setup() {
@@ -1328,13 +1396,35 @@ class OutfitEdit extends OutfitInput {
         const starSymbolsList = starsValueList.map(num => Array(num+1).join(STAR_UNICODE))
         populateDropdown(this.starsSelect, starSymbolsList, starsValueList, this.outfit.stars)
         this.availableCheckbox.checked = this.outfit.isAvailable()
+
+        const removeImageButton = this.querySelector('.clear-file-button');
+        const addImageButton = this.querySelector('.add-image-button');
+        const addImageLabel = addImageButton.querySelector('span');
+        function toggleImageOptions(hasImage) {
+            removeImageButton.classList.toggle('hidden', !hasImage);
+            addImageLabel.textContent = hasImage ? "Change Image" : "Upload Image"
+        }
+        toggleImageOptions(this.outfit.image != null);
+
+        addImageButton.addEventListener('change', (event) => {
+            if (event.target.files.length > 0) {
+                toggleImageOptions(true);
+                this.currentPhoto = this.imageInput.files[0];
+            }
+        })
+
+        removeImageButton.addEventListener('click', () => {
+            this.imageInput.value = '';
+            toggleImageOptions(false);
+            this.currentPhoto = null;
+        });
     }
 
     async handleSubmit() {
         this.outfit.items = this.currentItems;
         this.outfit.weather = this.weatherSelect.value;
         this.outfit.stars = parseInt(this.starsSelect.value, 10);
-        this.outfit.image = this.imageInput.files[0];
+        this.outfit.image = this.currentPhoto;
 
         if (this.availableCheckbox.checked != this.outfit.isAvailable()) {
             for (const item of this.outfit.items) {
