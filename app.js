@@ -97,13 +97,12 @@ class Item {
 
 
 class Outfit {
-    constructor(items, weather, stars) {
+    constructor(id, items, weather, stars) {
+        this.id = id;
         this.items = items;
         this.weather = weather;
         this.stars = stars;
 
-        this.id = outfits.length;
-        outfits.push(this);
         for (const item of this.items) {
             if (!item.outfits.includes(this.id)) {
                 item.outfits.push(this.id)
@@ -138,6 +137,7 @@ function getItemByName(name) {
     }
 }
 
+
 function getDefaultItemsSort(itemsList) {
     return itemsList.toSorted((a, b) => {
         return a.name.localeCompare(b.name);
@@ -145,6 +145,7 @@ function getDefaultItemsSort(itemsList) {
         return ITEM_TYPES[a.type] - ITEM_TYPES[b.type];
     });
 }
+
 
 function getDefaultOutfitsSort(outfitsList) {
     return outfitsList.toSorted((a, b) => {
@@ -154,34 +155,81 @@ function getDefaultOutfitsSort(outfitsList) {
     });
 }
 
-function saveData(i=items, o=outfits) {
-    localStorage.setItem("items", JSON.stringify(i, null, 2))
-    localStorage.setItem("outfits", JSON.stringify(o, null, 2))
+
+function getObjectStore(storeName, mode, callback) {
+    const request = indexedDB.open("ClosetDB", 1);
+    request.onupgradeneeded = function(event) {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains("itemsStore")) {
+            db.createObjectStore("itemsStore", { keyPath: "name" });
+        }
+        if (!db.objectStoreNames.contains("outfitsStore")) {
+            db.createObjectStore("outfitsStore", { keyPath: "id" });
+        }
+    };
+
+    request.onsuccess = function(event) {
+        const db = event.target.result;
+        const transaction = db.transaction(storeName, mode);
+        const store = transaction.objectStore(storeName);
+        callback(store);
+        
+        transaction.oncomplete = function() {
+            db.close();
+        };
+    };
+
+    request.onerror = function(event) {
+        console.error("Database error: ", event.target.error);
+    };
 }
 
 
-function parseSavedData() {
-    jsonItems = localStorage.getItem("items");
-    parsedItems = JSON.parse(jsonItems) || []
-    jsonOutfits = localStorage.getItem("outfits");
-    parsedOutfits = JSON.parse(jsonOutfits) || []
+function saveData() {
+    getObjectStore('itemsStore', 'readwrite', function(store) {
+        store.clear();
+        items.forEach((item) => {
+            store.put(item);
+        })
+    })
 
-    return [parsedItems, parsedOutfits]
+    getObjectStore('outfitsStore', 'readwrite', function(store) {
+        store.clear();
+        outfits.forEach((outfit) => {
+            store.put(outfit);
+        })
+    })
+}
+
+
+function getSavedData() {
+    return new Promise((resolve) => {
+        getObjectStore('itemsStore', 'readonly', function(itemsStore) {
+            const itemsRequest = itemsStore.getAll();
+            itemsRequest.onsuccess = () => {
+                const itemsDictList = itemsRequest.result;
+
+        getObjectStore('outfitsStore', 'readonly', function(outfitsStore) {
+            const outfitsRequest = outfitsStore.getAll();
+            outfitsRequest.onsuccess = () => {
+                const outfitsDictList = outfitsRequest.result;
+                loadData(itemsDictList, outfitsDictList);
+                resolve();
+            }
+        });
+            };
+        });
+    })
 }
 
 
 function loadData(parsedItems, parsedOutfits) {
     items = parsedItems.map(item => new Item(item.name, item.type, item.image, item.wishlist, item.worn))
+    outfits = []
     for (const outfit of parsedOutfits) {
         const outfitItems = outfit.items.map(item => getItemByName(item.name))
-        new Outfit(outfitItems, outfit.weather, parseInt(outfit.stars, 10));
+        outfits.push(new Outfit(outfits.length, outfitItems, outfit.weather, parseInt(outfit.stars, 10)));
     }
-}
-
-
-async function getSavedData() {
-    const [parsedItems, parsedOutfits] = await parseSavedData();
-    loadData(parsedItems, parsedOutfits);
 }
 
 
@@ -361,6 +409,7 @@ function populateDropdown(element, textContent, value=null, defaultValue=null) {
     }
 }
 
+
 function initAddOutfitButton() {
     const bottomSheet = document.querySelector('bottom-sheet');
     
@@ -377,6 +426,7 @@ function initAddOutfitButton() {
         bottomSheet.openSheet()
     })
 }
+
 
 function initAddItemButton() {
     const bottomSheet = document.querySelector('bottom-sheet');
@@ -395,6 +445,7 @@ function initAddItemButton() {
     })
 }
 
+
 function initFilterSortButtons() {
     const filterButton = document.getElementById('filter-button')
     filterButton.addEventListener("click", () => {
@@ -408,6 +459,7 @@ function initFilterSortButtons() {
         itemSort.classList.toggle("hidden");
     })
 }
+
 
 async function initOutfitsPage() {
     await getSavedData();
@@ -423,6 +475,7 @@ async function initItemsPage() {
     initFilterSortButtons();
 }
 
+
 function initSettingsPage() {
     getSavedData();
 
@@ -434,11 +487,13 @@ function initSettingsPage() {
         event.preventDefault();
         const jsonFile = fileInput.files[0];
         try {
-            const jsonText = await jsonFile.text();
-            const jsonData =  JSON.parse(jsonText);
-            const uploadedItems = jsonData['items']
-            const uploadedOutfits = jsonData['outfits']
-            saveData(items=uploadedItems, outfits=uploadedOutfits)
+            const [uploadedItems, uploadedOutfits] = await (async () => {
+                const jsonText = await jsonFile.text();
+                jsonData = JSON.parse(jsonText);
+                return [jsonData['items'], jsonData['outfits']];
+            })();
+            loadData(uploadedItems, uploadedOutfits);
+            saveData();
             status.textContent = "Uploaded successfully."
         }
         catch (error) {
@@ -1207,7 +1262,8 @@ class OutfitAdd extends OutfitInput {
         const stars = parseInt(this.starsSelect.value, 10);
 
         if (this.validateFields()) {
-            const newOutfit = new Outfit(selectedItems, weather, stars);
+            const newOutfit = new Outfit(outfits.length, selectedItems, weather, stars);
+            outfits.push(newOutfit);
             saveData();
             this.dispatchEvent(new CustomEvent('add-submitted', {
                 detail: newOutfit

@@ -142,19 +142,14 @@ input:not(:placeholder-shown) + .clear-button {
   display: flex;
   border-radius: 30px;
   background-color: white;
-  margin: 20px 30px 40px;
-  /* box-shadow: 0 0 15px -5px rgba(0, 0, 0, 0.4); */
-  
+  margin: 20px 30px 40px;  
   overflow: hidden;
 }
 
 .input-buttons button {
   flex: 1 1;
   border-radius: 0;
-  /* border-radius: var(--radius); */
   padding: 14px;
-  /* background-color: transparent;
-  color: black; */
 }
 
 outfit-filter .input-buttons, item-filter .input-buttons {
