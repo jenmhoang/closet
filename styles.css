@@ -123,8 +123,9 @@ item-filter .input-form label, outfit-filter .input-form label{
   display:none;
 }
 
-.clear-button {
+.clear-button, .clear-file-button {
   display: none;
+  margin-left: auto;
   width: 20px;
   height: 20px;
   mask-size: contain;
@@ -134,7 +135,10 @@ item-filter .input-form label, outfit-filter .input-form label{
   background-color: var(--primary-mid-dark); 
 }
 
-input:not(:placeholder-shown) + .clear-button {
+input.name-input:not(:placeholder-shown) + .clear-button,
+input.search-input:not(:placeholder-shown) + .clear-button
+.clear-file-button
+{
   display: block;
 }
 

@@ -97,11 +97,12 @@ class Item {
 
 
 class Outfit {
-    constructor(id, items, weather, stars) {
+    constructor(id, items, weather, stars, image=null) {
         this.id = id;
         this.items = items;
         this.weather = weather;
         this.stars = stars;
+        this.image = image;
 
         for (const item of this.items) {
             if (!item.outfits.includes(this.id)) {
@@ -228,7 +229,7 @@ function loadData(parsedItems, parsedOutfits) {
     outfits = []
     for (const outfit of parsedOutfits) {
         const outfitItems = outfit.items.map(item => getItemByName(item.name))
-        outfits.push(new Outfit(outfits.length, outfitItems, outfit.weather, parseInt(outfit.stars, 10)));
+        outfits.push(new Outfit(outfits.length, outfitItems, outfit.weather, parseInt(outfit.stars, 10), outfit.image));
     }
 }
 
@@ -694,11 +695,11 @@ class ItemAdd extends ItemInput {
     handleSubmit() {
         const name = this.nameInput.value;
         const type = this.typeSelect.value;
+        const imageInput = this.imageInput.files[0];
         const wishlist = this.wishlistCheckbox.checked;
-        // const imageInput = this.imageInput.files[0];
 
         if (this.validateFields()) {
-            const newItem = new Item(name, type, wishlist)
+            const newItem = new Item(name, type, imageInput, wishlist)
             items.push(newItem);
             saveData();
             this.dispatchEvent(new CustomEvent('add-submitted', {
@@ -728,11 +729,11 @@ class ItemEdit extends ItemInput {
     handleSubmit() {
         this.item.name = this.nameInput.value;
         this.item.type = this.typeSelect.value;
+        this.item.image = this.imageInput.files[0];
         this.item.worn = this.wornCheckbox.checked;
         this.item.wishlist = this.wishlistCheckbox.checked;
 
         this.dispatchEvent(new CustomEvent('editing-submitted', {}));
-
     }
 }
 customElements.define('item-edit', ItemEdit);
@@ -759,6 +760,9 @@ class ItemFilter extends ItemInput {
 
         // change name input to search
         this.nameInput.parentElement.firstChild.textContent = "Search"
+
+        // remove image input
+        this.imageInput.parentElement.classList.add('hidden');
 
         // make type dropdown multi select
         this.typeSelect.multiple = true;
@@ -1097,6 +1101,16 @@ class ItemComponent extends ItemPill {
         this._resolveConnected();
     }
 
+    updateInfo() {
+        super.updateInfo();
+        
+        if (this.item.image) {
+            const imageElement = this.querySelector('.image');
+            const imgUrl = URL.createObjectURL(this.item.image);
+            imageElement.src = imgUrl;
+        }
+    }
+
     filterOutfits() {
         const url = new URL("index.html", window.location.href);
         url.searchParams.append('item', this.item.name);
@@ -1170,6 +1184,7 @@ class OutfitInput extends HTMLElement {
     }
 
     setup() {
+        this.imageInput = this.querySelector('.image-input');
         this.weatherSelect = this.querySelector('.weather-select');
         this.starsSelect = this.querySelector('.stars-select');
         this.availableCheckbox = this.querySelector('.available-checkbox');
@@ -1258,11 +1273,12 @@ class OutfitAdd extends OutfitInput {
 
     handleSubmit() {
         const selectedItems = this.currentItems;
+        const imageInput = this.imageInput.files[0];
         const weather = this.weatherSelect.value;
         const stars = parseInt(this.starsSelect.value, 10);
 
         if (this.validateFields()) {
-            const newOutfit = new Outfit(outfits.length, selectedItems, weather, stars);
+            const newOutfit = new Outfit(outfits.length, selectedItems, weather, stars, imageInput);
             outfits.push(newOutfit);
             saveData();
             this.dispatchEvent(new CustomEvent('add-submitted', {
@@ -1307,6 +1323,7 @@ class OutfitEdit extends OutfitInput {
         this.outfit.items = this.currentItems;
         this.outfit.weather = this.weatherSelect.value;
         this.outfit.stars = parseInt(this.starsSelect.value, 10);
+        this.outfit.image = this.imageInput.files[0];
 
         if (this.availableCheckbox.checked != this.outfit.isAvailable()) {
             for (const item of this.outfit.items) {
@@ -1353,6 +1370,9 @@ class OutfitFilter extends OutfitInput {
         itemsDiv.classList.add('hidden');
         const itemsLabel = this.querySelector('.items-label');
         itemsLabel.classList.add('hidden');
+
+        // remove image input
+        this.imageInput.parentElement.classList.add('hidden');
 
         // make dropdowns multi select
         this.weatherSelect.multiple = true;
@@ -1504,6 +1524,7 @@ class OutfitComponent extends HTMLElement {
             const itemPill = new ItemPill(item);
             itemsDiv.appendChild(itemPill);
         }
+
         this.style.setProperty('--weather-color', WEATHER_COLORS[this.outfit.weather]);
         const starsElement = this.querySelector('.stars');
         starsElement.textContent = Array(this.outfit.stars + 1).join(STAR_UNICODE);
@@ -1512,6 +1533,12 @@ class OutfitComponent extends HTMLElement {
         const wishlistIcon = this.querySelector('.outfit-wishlist-icon');
         wishlistIcon.classList.toggle('hidden', !this.outfit.isWishlist());
         this.classList.toggle('worn', !this.outfit.isAvailable());
+
+        if (this.outfit.image) {
+            const imageElement = this.querySelector('.image');
+            const imgUrl = URL.createObjectURL(this.outfit.image);
+            imageElement.src = imgUrl;
+        }
     }
 
     filterItems() {
