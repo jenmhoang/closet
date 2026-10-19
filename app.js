@@ -1070,9 +1070,13 @@ class ItemComponent extends ItemPill {
         this.updateInfo();
 
         const componentButton = this.querySelector('.component-button');
-        componentButton.addEventListener('click', () => {
-            this.toggleOptions();
-            this.scrollToFit();
+        componentButton.addEventListener('click', (event) => {
+            if (event.target.closest(".image")) {
+                this.togglePhoto(this.querySelector('.image'));
+            } else {
+                this.toggleOptions();
+                this.scrollToFit();
+            }
         })
 
         const filterButton = this.querySelector(".filter-button");
@@ -1148,6 +1152,13 @@ class ItemComponent extends ItemPill {
             saveData();
             showItems(this.item.name);
         }, {once: true})
+    }
+
+    togglePhoto(imageElement) {
+        const bottomSheet = document.querySelector('bottom-sheet');
+        const clonedElement = imageElement.cloneNode(true);
+        bottomSheet.addStep(clonedElement, this.item.name);
+        bottomSheet.openSheet();
     }
     
     async scrollToFit(focus=false) {
@@ -1487,9 +1498,13 @@ class OutfitComponent extends HTMLElement {
         this.updateInfo();
 
         const componentButton = this.querySelector('.component-button');
-        componentButton.addEventListener('click', () => {
-            this.toggleOptions();
-            this.scrollToFit();
+        componentButton.addEventListener('click', (event) => {
+            if (event.target.closest(".image")) {
+                this.togglePhoto(this.querySelector('.image'));
+            } else {
+                this.toggleOptions();
+                this.scrollToFit();
+            }
         })
 
         const filterButton = this.querySelector(".filter-button");
@@ -1578,6 +1593,13 @@ class OutfitComponent extends HTMLElement {
             saveData();
             showOutfits(this.outfit.id);
         }, {once: true})
+    }
+
+    togglePhoto(imageElement) {
+        const bottomSheet = document.querySelector('bottom-sheet');
+        const clonedElement = imageElement.cloneNode(true);
+        bottomSheet.addStep(clonedElement, this.outfit.items.map((item) => item.name).join(", "));
+        bottomSheet.openSheet();
     }
     
     async scrollToFit(focus=false) {
