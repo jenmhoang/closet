@@ -563,7 +563,7 @@ bottom-sheet {
   bottom: 0;
   left: 0;
   width: 100%;
-  max-height: 90vh;
+  max-height: 85dvh;
   background: white;
   border-radius: 20px 20px 0 0;
   display: flex;
@@ -640,7 +640,7 @@ item-select {
   flex-direction: column;
   gap: 20px;
   padding: 0 15px 20px 15px;
-  height: 80vh;
+  height: 100vh;
 }
 
 .search-label {
