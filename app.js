@@ -120,6 +120,15 @@ class Outfit {
         return true;
     }
 
+    setAvailable(available) {
+        for (const item of this.items) {
+                const excludedTypes = ['accessory', 'outerwear', 'shoes']
+                if (!excludedTypes.includes(item.type)) {
+                    item.worn = !available;
+                }
+            }
+    }
+
     isWishlist() {
         for (const item of this.items) {
             if (item.wishlist) {
@@ -448,13 +457,13 @@ function initAddItemButton() {
 
 
 function initFilterSortButtons() {
-    const filterButton = document.getElementById('filter-button')
+    const filterButton = document.querySelector('.filter-button')
     filterButton.addEventListener("click", () => {
         const itemFilter = document.querySelector(".filter");
         itemFilter.classList.toggle("hidden");
     })
 
-    const sortButton = document.getElementById('sort-button')
+    const sortButton = document.querySelector('.sort-button')
     sortButton.addEventListener("click", () => {
         const itemSort = document.querySelector(".sort");
         itemSort.classList.toggle("hidden");
@@ -669,15 +678,18 @@ class ItemAdd extends ItemInput {
         const removeImageButton = this.querySelector('.clear-file-button');
         const addImageButton = this.querySelector('.add-image-button');
         const addImageLabel = addImageButton.querySelector('span');
-        function toggleImageOptions(hasImage) {
-            removeImageButton.classList.toggle('hidden', !hasImage);
+        const thumbnailPreview = this.querySelector('.thumbnail-preview');
+        function toggleImageOptions(hasImage, image=null) {
             addImageLabel.textContent = hasImage ? "Change Image" : "Upload Image"
+            removeImageButton.classList.toggle('hidden', !hasImage);
+            thumbnailPreview.classList.toggle('hidden', !hasImage);
+            if (image) thumbnailPreview.src = URL.createObjectURL(image);
         }
 
         addImageButton.addEventListener('change', (event) => {
             if (event.target.files.length > 0) {
-                toggleImageOptions(true);
                 this.currentPhoto = this.imageInput.files[0];
+                toggleImageOptions(true, this.currentPhoto);
             }
         })
 
@@ -751,16 +763,19 @@ class ItemEdit extends ItemInput {
         const removeImageButton = this.querySelector('.clear-file-button');
         const addImageButton = this.querySelector('.add-image-button');
         const addImageLabel = addImageButton.querySelector('span');
-        function toggleImageOptions(hasImage) {
-            removeImageButton.classList.toggle('hidden', !hasImage);
+        const thumbnailPreview = this.querySelector('.thumbnail-preview');
+        function toggleImageOptions(hasImage, image=null) {
             addImageLabel.textContent = hasImage ? "Change Image" : "Upload Image"
+            removeImageButton.classList.toggle('hidden', !hasImage);
+            thumbnailPreview.classList.toggle('hidden', !hasImage);
+            if (image) thumbnailPreview.src = URL.createObjectURL(image);
         }
-        toggleImageOptions(this.item.image != null);
+        toggleImageOptions(this.item.image != null, this.item.image);
 
         addImageButton.addEventListener('change', (event) => {
             if (event.target.files.length > 0) {
-                toggleImageOptions(true);
                 this.currentPhoto = this.imageInput.files[0];
+                toggleImageOptions(true, this.currentPhoto);
             }
         })
 
@@ -1124,6 +1139,17 @@ class ItemComponent extends ItemPill {
             }
         })
 
+        const wearWashButton = this.querySelector(".wear-wash-button");
+        wearWashButton.classList.toggle('worn', this.item.worn);
+        wearWashButton.lastChild.textContent = this.item.worn ? "Wash" : "Wear";
+        wearWashButton.addEventListener("click", () => {
+            this.toggleOptions();
+            this.item.worn = !this.item.worn;
+            this.updateInfo();
+            wearWashButton.classList.toggle('worn', this.item.worn);
+            wearWashButton.lastChild.textContent = this.item.worn ? "Wash" : "Wear";
+        })
+
         const filterButton = this.querySelector(".filter-button");
         filterButton.addEventListener("click", () => {
             this.filterOutfits()
@@ -1138,13 +1164,37 @@ class ItemComponent extends ItemPill {
         const deleteButton = this.querySelector(".delete-button");
         deleteButton.addEventListener("click", () => {
             this.toggleOptions(false);
-            for (const outfitIndex of this.item.outfits) {
-                const outfit = outfits[outfitIndex];
-                outfit.items.splice(outfit.items.indexOf(this.item), 1);
-            }
-            items.splice(items.indexOf(this.item), 1);
-            saveData()
-            showItems()
+
+            const confirmationPageHtml = `
+                <div class="confirmation-buttons">
+                    <button class="cancel-button">Cancel</button>
+                    <button class="delete-confirm-button">Delete</button>
+                </div>
+            `
+
+            const template = document.createElement('template');
+            template.innerHTML = confirmationPageHtml.trim();
+            const confirmationPage = template.content.firstElementChild;
+
+            const bottomSheet = document.querySelector('bottom-sheet');
+            const deleteConfirmButton = confirmationPage.querySelector('.delete-confirm-button');
+            const cancelButton = confirmationPage.querySelector('.cancel-button');
+            cancelButton.addEventListener("click", () => {
+                bottomSheet.closeSheet();
+            })
+
+            deleteConfirmButton.addEventListener("click", () => {
+                bottomSheet.closeSheet();
+                for (const outfitIndex of this.item.outfits) {
+                    const outfit = outfits[outfitIndex];
+                    outfit.items.splice(outfit.items.indexOf(this.item), 1);
+                }
+                items.splice(items.indexOf(this.item), 1);
+                saveData()
+                showItems()
+            })
+            bottomSheet.addStep(confirmationPage, "Delete Item?");
+            bottomSheet.openSheet();
         })
         
         this._resolveConnected();
@@ -1306,15 +1356,18 @@ class OutfitAdd extends OutfitInput {
         const removeImageButton = this.querySelector('.clear-file-button');
         const addImageButton = this.querySelector('.add-image-button');
         const addImageLabel = addImageButton.querySelector('span');
-        function toggleImageOptions(hasImage) {
-            removeImageButton.classList.toggle('hidden', !hasImage);
+        const thumbnailPreview = this.querySelector('.thumbnail-preview');
+        function toggleImageOptions(hasImage, image=null) {
             addImageLabel.textContent = hasImage ? "Change Image" : "Upload Image"
+            removeImageButton.classList.toggle('hidden', !hasImage);
+            thumbnailPreview.classList.toggle('hidden', !hasImage);
+            if (image) thumbnailPreview.src = URL.createObjectURL(image);
         }
 
         addImageButton.addEventListener('change', (event) => {
             if (event.target.files.length > 0) {
-                toggleImageOptions(true);
                 this.currentPhoto = this.imageInput.files[0];
+                toggleImageOptions(true, this.currentPhoto);
             }
         })
 
@@ -1400,16 +1453,19 @@ class OutfitEdit extends OutfitInput {
         const removeImageButton = this.querySelector('.clear-file-button');
         const addImageButton = this.querySelector('.add-image-button');
         const addImageLabel = addImageButton.querySelector('span');
-        function toggleImageOptions(hasImage) {
-            removeImageButton.classList.toggle('hidden', !hasImage);
+        const thumbnailPreview = this.querySelector('.thumbnail-preview');
+        function toggleImageOptions(hasImage, image=null) {
             addImageLabel.textContent = hasImage ? "Change Image" : "Upload Image"
+            removeImageButton.classList.toggle('hidden', !hasImage);
+            thumbnailPreview.classList.toggle('hidden', !hasImage);
+            if (image) thumbnailPreview.src = URL.createObjectURL(image);
         }
-        toggleImageOptions(this.outfit.image != null);
+        toggleImageOptions(this.outfit.image != null, this.outfit.image);
 
         addImageButton.addEventListener('change', (event) => {
             if (event.target.files.length > 0) {
-                toggleImageOptions(true);
                 this.currentPhoto = this.imageInput.files[0];
+                toggleImageOptions(true, this.currentPhoto);
             }
         })
 
@@ -1597,6 +1653,19 @@ class OutfitComponent extends HTMLElement {
             }
         })
 
+        const wearWashButton = this.querySelector(".wear-wash-button");
+        const available = this.outfit.isAvailable();
+        wearWashButton.classList.toggle('worn', !available);
+        wearWashButton.lastChild.textContent = !available ? "Wash" : "Wear";
+        wearWashButton.addEventListener("click", () => {
+            this.toggleOptions();
+            const available = !this.outfit.isAvailable();
+            this.outfit.setAvailable(available);
+            showOutfits();
+            wearWashButton.classList.toggle('worn', !available);
+            wearWashButton.lastChild.textContent = !available ? "Wash" : "Wear";
+        })
+
         const filterButton = this.querySelector(".filter-button");
         filterButton.addEventListener("click", () => {
             this.filterItems()
@@ -1611,12 +1680,36 @@ class OutfitComponent extends HTMLElement {
         const deleteButton = this.querySelector(".delete-button");
         deleteButton.addEventListener("click", () => {
             this.toggleOptions(false);
-            for (const item of this.outfit.items) {
-                item.outfits.splice(item.outfits.indexOf(this.outfit.id), 1);
-            }
-            outfits.splice(outfits.indexOf(this.outfit), 1)
-            saveData();
-            showOutfits();
+
+            const confirmationPageHtml = `
+                <div class="confirmation-buttons">
+                    <button class="cancel-button">Cancel</button>
+                    <button class="delete-confirm-button">Delete</button>
+                </div>
+            `
+
+            const template = document.createElement('template');
+            template.innerHTML = confirmationPageHtml.trim();
+            const confirmationPage = template.content.firstElementChild;
+
+            const bottomSheet = document.querySelector('bottom-sheet');
+            const deleteConfirmButton = confirmationPage.querySelector('.delete-confirm-button');
+            const cancelButton = confirmationPage.querySelector('.cancel-button');
+            cancelButton.addEventListener("click", () => {
+                bottomSheet.closeSheet();
+            })
+
+            deleteConfirmButton.addEventListener("click", () => {
+                bottomSheet.closeSheet();
+                for (const item of this.outfit.items) {
+                    item.outfits.splice(item.outfits.indexOf(this.outfit.id), 1);
+                }
+                outfits.splice(outfits.indexOf(this.outfit), 1)
+                saveData();
+                showOutfits();
+            })
+            bottomSheet.addStep(confirmationPage, "Delete Outfit?");
+            bottomSheet.openSheet();
         })
         this._resolveConnected();
     }

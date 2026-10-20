@@ -80,10 +80,6 @@ button, .add-image-button {
   gap: 10px;
   margin: 0;
   background-color: transparent;
-}
-
-#filter-button {
-  width: 60%;
   padding: 0;
 }
 
@@ -115,7 +111,10 @@ item-filter .input-form label, outfit-filter .input-form label{
 }
 
 .input-options label.add-image-button {
-  padding: 5px 15px;
+  padding: 0px 15px;
+  height: 28px;
+  line-height: 28px;
+  text-align: center;
   border: none;
 }
 
@@ -146,7 +145,7 @@ input.search-input:not(:placeholder-shown) + .clear-button
   display: block;
 }
 
-.input-buttons {
+.input-buttons, .confirmation-buttons {
   display: flex;
   border-radius: 30px;
   background-color: white;
@@ -154,24 +153,28 @@ input.search-input:not(:placeholder-shown) + .clear-button
   overflow: hidden;
 }
 
-.input-buttons button {
+.input-buttons button, .confirmation-buttons button {
   flex: 1 1;
   border-radius: 0;
   padding: 14px;
 }
 
+.confirmation-buttons {
+  gap: 15px;
+}
+
+.confirmation-buttons button {
+  border-radius: 30px;
+}
+
+.delete-confirm-button {
+  background-color: var(--primary-dark);
+  color: white;
+}
+
 outfit-filter .input-buttons, item-filter .input-buttons {
   margin: 0;
   border-radius: 0;
-}
-
-#sort-button {
-  padding: 0;
-}
-
-#sort-button img {
-  width: 12px;
-  height: 12px;
 }
 
 .filter-sort-buttons div {
@@ -442,7 +445,7 @@ outfit-component .component-button {
   background-color: var(--item-color-mid);
 }
 
-.image {
+.image, .thumbnail-preview {
   height: 50px;
   width: 50px;
   aspect-ratio: 1 / 1;
@@ -450,6 +453,10 @@ outfit-component .component-button {
   border-radius: var(--radius);
   margin-left: auto;
   display:none;
+}
+
+.thumbnail-preview {
+  display: block;
 }
 
 item-component .image {
@@ -506,13 +513,49 @@ img.image[src] {
 
   display: inline-flex;
   align-items: center;
+  /* justify-content: start; */
   gap: 20px;
 }
 
 .icon {
+  display: block;
   width: 14px;
   height: 14px;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  background-color: black;
 }
+
+.wear-wash-button .icon {
+  mask-image: url('icons/wear.svg');
+}
+
+.wear-wash-button.worn .icon {
+  mask-image: url('icons/wash.svg');
+}
+
+.filter-button .icon {
+  mask-image: url('icons/filter.svg');
+}
+
+.sort-button .icon {
+  mask-image: url('icons/sort.svg');
+  width: 12px;
+  height: 12px;
+}
+
+.edit-button .icon {
+  mask-image: url('icons/edit.svg');
+}
+
+.delete-button .icon {
+  mask-image: url('icons/delete.svg');
+}
+
+/* .filter-button img {
+  mask-image: url('icons/filter.svg');
+} */
 
 bottom-sheet {
   visibility: hidden;
@@ -597,6 +640,7 @@ item-select {
   flex-direction: column;
   gap: 20px;
   padding: 0 15px 20px 15px;
+  height: 80vh;
 }
 
 .search-label {
@@ -622,6 +666,16 @@ bottom-sheet button.close-button {
   color: black;
 }
 
+.clear-file-button {
+  background-color: var(--primary-dark);
+  color: white;
+}
+
+.thumbnail-preview {
+  height: 28px;
+  width: 28px;
+  margin: 0;
+}
 
 .hidden {
   display: none;
