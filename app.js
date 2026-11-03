@@ -1145,6 +1145,7 @@ class ItemComponent extends ItemPill {
         wearWashButton.addEventListener("click", () => {
             this.toggleOptions();
             this.item.worn = !this.item.worn;
+            saveData();
             this.updateInfo();
             wearWashButton.classList.toggle('worn', this.item.worn);
             wearWashButton.lastChild.textContent = this.item.worn ? "Wash" : "Wear";
@@ -1259,10 +1260,11 @@ class ItemComponent extends ItemPill {
     async scrollToFit(focus=false) {
         await this._isConnectedPromise;
         const componentOptions = this.querySelector('.component-options')
-        
+        const behavior = smooth ? 'smooth' : 'instant'
+        const block = focus ? 'end' : 'nearest';
         if (focus || componentOptions.classList.contains('active')) {
             this.scrollIntoView({
-                behavior: 'smooth', block: 'end', inline:'nearest'
+                behavior: behavior, block: block, inline:'nearest'
             });
         }
     }
@@ -1483,12 +1485,7 @@ class OutfitEdit extends OutfitInput {
         this.outfit.image = this.currentPhoto;
 
         if (this.availableCheckbox.checked != this.outfit.isAvailable()) {
-            for (const item of this.outfit.items) {
-                const excludedTypes = ['accessory', 'outerwear', 'shoes']
-                if (!excludedTypes.includes(item.type)) {
-                    item.worn = !this.availableCheckbox.checked;
-                }
-            }
+            this.outfit.setAvailable(this.availableCheckbox.checked);
         }
         this.dispatchEvent(new CustomEvent('editing-submitted', {}));
     }
@@ -1661,9 +1658,10 @@ class OutfitComponent extends HTMLElement {
             this.toggleOptions();
             const available = !this.outfit.isAvailable();
             this.outfit.setAvailable(available);
-            showOutfits();
             wearWashButton.classList.toggle('worn', !available);
             wearWashButton.lastChild.textContent = !available ? "Wash" : "Wear";
+            saveData();
+            showOutfits(this.outfit.id);
         })
 
         const filterButton = this.querySelector(".filter-button");
@@ -1728,8 +1726,6 @@ class OutfitComponent extends HTMLElement {
         starsElement.textContent = Array(this.outfit.stars + 1).join(STAR_UNICODE);
         const weatherIcon = this.querySelector('.weather-icon');
         weatherIcon.style.setProperty('--icon-src', `url('icons/weather/${this.outfit.weather}.svg')`)
-        const wishlistIcon = this.querySelector('.outfit-wishlist-icon');
-        wishlistIcon.classList.toggle('hidden', !this.outfit.isWishlist());
         this.classList.toggle('worn', !this.outfit.isAvailable());
 
         if (this.outfit.image) {
@@ -1785,12 +1781,14 @@ class OutfitComponent extends HTMLElement {
         bottomSheet.openSheet();
     }
     
-    async scrollToFit(focus=false) {
+    async scrollToFit(focus=false, smooth=true) {
         await this._isConnectedPromise;
         const componentOptions = this.querySelector('.component-options')
+        const behavior = smooth ? 'smooth' : 'instant'
+        const block = focus ? 'end' : 'nearest';
         if (focus || componentOptions.classList.contains('active')) {
             this.scrollIntoView({
-                behavior: 'smooth', block: 'end', inline:'nearest'
+                behavior: behavior, block: block, inline:'nearest'
             });
         }
     }
@@ -1914,18 +1912,9 @@ class ItemSelect extends HTMLElement {
             const addItemText = this.addItemButton.querySelector('.add-text');
             addItemText.textContent = `New: ${search}`
 
-            let searchWords = [];
-            if (search.includes('"')) {
-                const regex =/"([^"]*)"/g;
-                searchWords = Array.from(search.matchAll(regex), m => m[1]);
-                search = search.replaceAll('"', '')
-                for (const searchWord of searchWords) {
-                    search = search.replace(searchWord, '');
-                }
-            }
-            if (search) searchWords = searchWords.concat(search.trim().split(" "));
+            const searchWords = search.toLowerCase().trim().split(" ");
             filteredItems = items.filter(item => {
-                return searchWords.some(word => item.name.includes(word));
+                return searchWords.every(word => item.name.toLowerCase().includes(word));
             })
         }
 

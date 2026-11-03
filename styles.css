@@ -329,8 +329,16 @@ item-component.active, outfit-component.active {
   box-shadow: 0 0 15px -5px rgba(0, 0, 0, 0.9);
 }
 
-item-component.worn .component-button, outfit-component.worn .component-button, item-pill.worn button {
+item-component.worn .component-button, item-pill.worn {
   filter: grayscale(80%);
+  opacity: 0.5;
+}
+
+outfit-component.worn .component-button {
+  background-color: #f7f7ff;
+}
+
+outfit-component.worn img {
   opacity: 0.5;
 }
 
@@ -641,6 +649,10 @@ item-select {
   gap: 20px;
   padding: 0 15px 20px 15px;
   height: 100vh;
+}
+
+item-select .items {
+  padding-bottom: 40px;
 }
 
 .search-label {
